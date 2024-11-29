@@ -1,0 +1,4 @@
+_*
+.pytest_cache
+.vscode
+.venv
