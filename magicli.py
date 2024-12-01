@@ -135,5 +135,5 @@ def calling_frame(import_statement="import magicli"):
         frame = frame.f_back
 
 
-if (frame := calling_frame()) and frame.f_globals["__name__"] == "__main__":
-    magicli(frame_globals=frame.f_globals)
+if (frame := calling_frame()):
+    raise SystemExit(magicli(frame_globals=frame.f_globals))
