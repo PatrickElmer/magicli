@@ -96,7 +96,7 @@ def get_kwargs(argv, function):
             if parameter.name in kwargs:
                 raise KeyError
             
-            # Prevent args being used as kwargs
+            # Prevent args from being used as kwargs
             if parameter.default is not inspect._empty:
                 raise KeyError
 
