@@ -13,6 +13,7 @@ pip install magicli
 Simple usage example.
 
 ```python
+# module.py
 def hello(name, times=1):
     for _ in range(times):
         print("hello", name)
@@ -23,26 +24,7 @@ import magicli
 Make sure you import `magicli` at the end of the file.
 
 ```bash
-$ hello world --times 2
-hello world
-hello world
-```
-
-## Using subcommands
-
-```python
-# module.py
-def hello(): ...
-
-def world(times=1):
-    for _ in range(times):
-        print("hello world")
-
-import magicli
-```
-
-```bash
-$ hello world --times 2
+$ python3 module.py world --times 2
 hello world
 hello world
 ```
@@ -64,7 +46,34 @@ This example assumes the following project structure with the CLI to be created 
 └── pyproject.toml
 ```
 
+You can now `pip install` your code and call it like this:
+
+```bash
+$ hello world --times 2
+hello world
+hello world
+```
+
 Make sure to adjust the path to `module` if your project layout is different.
+
+### Using subcommands
+
+```python
+# module.py
+def hello(): ...
+
+def world(times=1):
+    for _ in range(times):
+        print("hello world")
+
+import magicli
+```
+
+```bash
+$ hello world --times 2
+hello world
+hello world
+```
 
 ### Help message
 
