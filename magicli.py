@@ -112,9 +112,9 @@ def get_kwargs(argv, function):
 def type_to_cast(parameter):
     """Returns the type of a parameter. Defaults to str."""
 
-    if parameter.annotation != inspect._empty:
+    if parameter.annotation is not inspect._empty:
         return parameter.annotation
-    if parameter.default != inspect._empty:
+    if parameter.default is not inspect._empty:
         return type(parameter.default)
     return str
 
