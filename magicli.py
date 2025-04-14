@@ -40,7 +40,7 @@ def get_function_to_call(argv, frame_globals):
     """
 
     if not argv:
-        raise IndexError
+        raise ValueError
 
     _all = frame_globals.get("__all__")
 

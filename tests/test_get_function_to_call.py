@@ -25,5 +25,5 @@ def test_success(sys_argv, function, argv):
 
 
 def test_no_argv():
-    with pytest.raises(IndexError):
+    with pytest.raises(ValueError):
         get_function_to_call([], globals())
