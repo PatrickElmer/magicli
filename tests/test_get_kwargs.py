@@ -94,7 +94,7 @@ def test_none():
 )
 def test_errors(prompt, error, function):
     with pytest.raises(error):
-        assert get_kwargs(prompt.split(), function)
+        get_kwargs(prompt.split(), function)
 
 
 def test_two_values_for_kwarg():

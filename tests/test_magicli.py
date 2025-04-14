@@ -72,13 +72,13 @@ def test_success(prompt, output, capsys):
 )
 def test_failure(prompt, output, capsys):
     with pytest.raises(SystemExit):
-        assert output == _cli(prompt, capsys)
+        output == _cli(prompt, capsys)
 
 
 def test_fail_on_arg_as_kwarg(capsys):
     assert _cli("say hello", capsys) == "hello world"
     with pytest.raises(SystemExit):
-        assert _cli("say hello magicli", capsys)
+        _cli("say hello magicli", capsys)
 
 
 def test_show_version(capsys):
