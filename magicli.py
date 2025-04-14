@@ -39,16 +39,34 @@ def get_function_to_call(argv, frame_globals):
     and the command line arguments to be fed into the function.
     """
 
-    if (
-        len(argv) > 1
-        and argv[0] != argv[1]
-        and (function := frame_globals.get(argv[1].replace("-", "_")))
-    ):
-        return function, argv[2:]
-    elif function := frame_globals.get(
-        argv[0].replace("-", "_"), first_function(frame_globals)
-    ):
+    if not argv:
+        raise IndexError
+
+    _all = frame_globals.get("__all__")
+
+    def is_valid_function(arg):
+        function_name = arg.replace("-", "_")
+        if not function_name.startswith("_") and function_name in _all if _all else True:
+            if inspect.isfunction(function := frame_globals.get(function_name)) and function.__module__ == frame_globals["__name__"]:
+                return function
+
+    # Try argv number 2
+    if len(argv) > 1 and argv[0] != argv[1]:
+        if function := is_valid_function(argv[1]):
+            return function, argv[2:]
+
+    # Try argv number 1
+    if function := is_valid_function(argv[0]):
         return function, argv[1:]
+
+    # Use first function in __all__
+    if _all:
+        for function_name in _all:
+            if function := is_valid_function(function_name):
+                return function, argv[1:]
+
+    # Use first function in module
+    return first_function(frame_globals), argv[1:]
 
 
 def first_function(frame_globals):
