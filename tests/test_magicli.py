@@ -51,7 +51,7 @@ def _cli(prompt, capsys=None):
     [
         ("foo", foo.__name__ * 2),
         ("foo --help", foo.__doc__),
-        # ("foo bar", bar.__name__ * 2),
+        ("foo bar", bar.__name__ * 2),
         ("foo bar --help", bar.__doc__),
         ("foo custom-version --version", "Version: " + __version__),
         ("foo custom-help --help", "Help: " + custom_help.__name__),
