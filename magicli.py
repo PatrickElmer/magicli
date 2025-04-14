@@ -44,11 +44,16 @@ def get_function_to_call(argv, frame_globals):
 
     _all = frame_globals.get("__all__")
 
+    def get_function(function_name):
+        if inspect.isfunction(function := frame_globals.get(function_name)) and function.__module__ == frame_globals["__name__"]:
+            return function
+
     def is_valid_function(arg):
         function_name = arg.replace("-", "_")
-        if not function_name.startswith("_") and function_name in _all if _all else True:
-            if inspect.isfunction(function := frame_globals.get(function_name)) and function.__module__ == frame_globals["__name__"]:
-                return function
+        if _all and function_name in _all and (function := get_function(function_name)):
+            return function
+        if not function_name.startswith("_") and (function := get_function(function_name)):
+            return function
 
     # Try argv number 2
     if len(argv) > 1 and argv[0] != argv[1]:
