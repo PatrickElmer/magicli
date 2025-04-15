@@ -22,9 +22,52 @@ def test_io(prompt, result, function):
     assert get_kwargs(prompt.split(), function) == result
 
 
+def test_short_option():
+    def f(aaa: str=""):
+        """-a, --aaa  Docstring."""
+        ...
+
+    prompt = "-a string".split()
+    assert get_kwargs(prompt, f) == {"aaa": "string"}
+
+
+def test_short_option_bool():
+    def f(aaa: bool=False):
+        """/
+        -a, --aaa  Docstring a.
+        -b, --bbb  Docstring b.
+        """
+        ...
+
+    assert get_kwargs(["-a"], f) == {"aaa": True}
+
+
+def test_short_options():
+    def f(aaa: str="", bbb: bool=False):
+        """/
+        -a, --aaa  Docstring a.
+        -b, --bbb  Docstring b.
+        """
+        ...
+
+    prompt = "-a string -b".split()
+    result = {
+        "aaa": "string",
+        "bbb": True,
+    }
+    assert get_kwargs(prompt, f) == result
+
+
+def test_short_option_failure():
+    def f(aaa: bool=False): ...
+
+    assert get_kwargs(["--aaa"], f) == {"aaa": True}
+    with pytest.raises(KeyError):
+        get_kwargs(["-a"], f)
+
+
 def test_int():
     def f(arg: int): ...
-
     assert get_kwargs(["1"], f) == {"arg": 1}
 
 
@@ -94,7 +137,7 @@ def test_none():
 )
 def test_errors(prompt, error, function):
     with pytest.raises(error):
-        assert get_kwargs(prompt.split(), function)
+        get_kwargs(prompt.split(), function)
 
 
 def test_two_values_for_kwarg():

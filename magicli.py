@@ -1,4 +1,5 @@
 import inspect
+import re
 import sys
 
 
@@ -71,7 +72,16 @@ def get_kwargs(argv, function):
     kwargs = {}
 
     for key in iterator:
-        if key.startswith("--"):
+        if key.startswith("-"):
+            if not key.startswith("--") and len(key) == 2:
+                short_option = key[1]
+
+                long_option = re.findall(rf"(?:^|\n) *-{short_option},? +--([a-z]+)", function.__doc__ or "")
+                if not long_option:
+                    raise KeyError
+
+                key = "--" + long_option[0]
+
             value = None
             key = key[2:].replace("-", "_")
 

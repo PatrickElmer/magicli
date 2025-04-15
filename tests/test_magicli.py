@@ -51,7 +51,7 @@ def _cli(prompt, capsys=None):
     [
         ("foo", foo.__name__ * 2),
         ("foo --help", foo.__doc__),
-        # ("foo bar", bar.__name__ * 2),
+        ("foo bar", bar.__name__ * 2),
         ("foo bar --help", bar.__doc__),
         ("foo custom-version --version", "Version: " + __version__),
         ("foo custom-help --help", "Help: " + custom_help.__name__),
@@ -72,13 +72,13 @@ def test_success(prompt, output, capsys):
 )
 def test_failure(prompt, output, capsys):
     with pytest.raises(SystemExit):
-        assert output == _cli(prompt, capsys)
+        output == _cli(prompt, capsys)
 
 
 def test_fail_on_arg_as_kwarg(capsys):
     assert _cli("say hello", capsys) == "hello world"
     with pytest.raises(SystemExit):
-        assert _cli("say hello magicli", capsys)
+        _cli("say hello magicli", capsys)
 
 
 def test_show_version(capsys):
