@@ -16,7 +16,7 @@ def magicli(
     function, argv = get_function_to_call(argv, frame_globals)
 
     try:
-        kwargs = get_kwargs(argv, function)
+        kwargs = get_kwargs(argv, function, help_message)
     except (IndexError, KeyError):
         handle_error(frame_globals, argv, help_message, version_message, function)
     else:
@@ -51,8 +51,8 @@ def get_function_to_call(argv, frame_globals):
         function_name = arg.replace("-", "_")
         if _all and function_name in _all and (function := get_function(function_name)):
             return function
-        if not function_name.startswith("_") and (function := get_function(function_name)):
-            return function
+        if not function_name.startswith("_"):
+            return get_function(function_name)
 
     # Try argv number 2
     if len(argv) > 1 and argv[0] != argv[1]:
@@ -85,9 +85,23 @@ def first_function(frame_globals):
             return function
 
 
-def get_kwargs(argv, function):
-    """Parses argv into kwargs and converts the values according to a function signature."""
+def short_to_long_option(short, docstring):
+    """Convert the one character short option into the option specified in the docstring."""
+    if not docstring:
+        raise KeyError
+    start = docstring.index(f"-{short}, --") + 6
+    ends = sorted([docstring.find(" ", start), docstring.find("\n", start)])
+    end = ends[1] if ends[0] == -1 else ends[0]
+    if end == -1:
+        if docstring[start:]:
+            return docstring[start:].replace("-", "_")
+        else:
+            raise KeyError
+    return docstring[start:end].replace("-", "_")
 
+
+def get_kwargs(argv, function, help_message=None):
+    """Parses argv into kwargs and converts the values according to a function signature."""
     parameters = inspect.signature(function).parameters
     parameter_values = list(parameters.values())
     iterator = iter(argv)
@@ -95,17 +109,37 @@ def get_kwargs(argv, function):
 
     for key in iterator:
         if key.startswith("-"):
-            if not key.startswith("--") and len(key) == 2:
-                short_option = key[1]
+            if not key.startswith("--") and len(key) > 1:
+                _, *flags, short_option = key
+                if not help_message:
+                    raise KeyError
+                docstring = help_message(function)
 
-                long_option = re.findall(rf"(?:^|\n) *-{short_option},? +--([a-z]+)", function.__doc__ or "")
+                for flag in flags:
+                    long_option = short_to_long_option(flag, docstring)
+                    if not long_option:
+                        raise KeyError
+                    key = long_option.replace("-", "_")
+
+                    cast_to = type_to_cast(parameters[key])
+                    if cast_to == bool:
+                        kwargs[key] = not parameters[key].default
+                    elif cast_to == type(None):
+                        kwargs[key] = True
+                    else:
+                        raise KeyError
+
+                long_option = short_to_long_option(short_option, docstring)
                 if not long_option:
                     raise KeyError
+                key = long_option.replace("-", "_")
 
-                key = "--" + long_option[0]
+            elif len(key) < 3:
+                raise KeyError
+            else:
+                key = key[2:].replace("-", "_")
 
             value = None
-            key = key[2:].replace("-", "_")
 
             if "=" in key:
                 key, value = key.split("=", 1)
