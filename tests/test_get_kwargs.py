@@ -1,5 +1,6 @@
 import pytest
 from magicli import get_kwargs
+import inspect
 
 
 @pytest.mark.parametrize(
@@ -28,7 +29,7 @@ def test_short_option():
         ...
 
     prompt = "-a string".split()
-    assert get_kwargs(prompt, f) == {"aaa": "string"}
+    assert get_kwargs(prompt, f, help_message=lambda function: inspect.getdoc(function)) == {"aaa": "string"}
 
 
 def test_short_option_bool():
@@ -39,7 +40,7 @@ def test_short_option_bool():
         """
         ...
 
-    assert get_kwargs(["-a"], f) == {"aaa": True}
+    assert get_kwargs(["-a"], f, help_message=lambda function: inspect.getdoc(function)) == {"aaa": True}
 
 
 def test_short_options():
@@ -55,13 +56,35 @@ def test_short_options():
         "aaa": "string",
         "bbb": True,
     }
-    assert get_kwargs(prompt, f) == result
+    assert get_kwargs(prompt, f, help_message=lambda function: inspect.getdoc(function)) == result
+
+
+def test_multiple_short_options():
+    def f(aaa: bool=False, bbb: bool=True, ccc=None):
+        """/
+        -a, --aaa  Docstring a.
+        -b, --bbb  Docstring b.
+        -c, --ccc  Docstring c.
+        """
+        ...
+
+    prompt = ["-abc"]
+    result = {
+        "aaa": True,
+        "bbb": False,
+        "ccc": True,
+    }
+    assert get_kwargs(prompt, f, help_message=lambda function: inspect.getdoc(function)) == result
 
 
 def test_short_option_failure():
     def f(aaa: bool=False): ...
 
     assert get_kwargs(["--aaa"], f) == {"aaa": True}
+    with pytest.raises(KeyError):
+        get_kwargs(["-a"], f)
+
+    f.__doc__ = "-a --aaa  Docstring aaa."
     with pytest.raises(KeyError):
         get_kwargs(["-a"], f)
 
