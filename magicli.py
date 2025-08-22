@@ -49,9 +49,7 @@ def get_function_to_call(argv, frame_globals):
 
     def is_valid_function(arg):
         function_name = arg.replace("-", "_")
-        if _all and function_name in _all and (function := get_function(function_name)):
-            return function
-        if not function_name.startswith("_"):
+        if _all and function_name in _all or not function_name.startswith("_"):
             return get_function(function_name)
 
     # Try argv number 2
@@ -90,13 +88,11 @@ def short_to_long_option(short, docstring):
     if not docstring:
         raise KeyError
     start = docstring.index(f"-{short}, --") + 6
-    ends = sorted([docstring.find(" ", start), docstring.find("\n", start)])
-    end = ends[1] if ends[0] == -1 else ends[0]
-    if end == -1:
-        if docstring[start:]:
-            return docstring[start:].replace("-", "_")
-        else:
-            raise KeyError
+    end = None
+    for char in [" ", "\n"]:
+        if docstring.find(char, start) >= 0:
+            end = docstring.find(char, start)
+            break
     return docstring[start:end].replace("-", "_")
 
 
