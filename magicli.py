@@ -1,9 +1,11 @@
 import inspect
 import sys
+from importlib import metadata
 
-
-__version__ = "1.1.0"
-
+try:
+    __version__ = metadata.version("magicli")
+except metadata.PackageNotFoundError:
+    pass
 
 def magicli(
     frame_globals=inspect.currentframe().f_back.f_globals,

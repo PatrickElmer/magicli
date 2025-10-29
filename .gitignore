@@ -2,3 +2,5 @@ _*
 .pytest_cache
 .vscode
 .venv
+build
+*.egg-info
