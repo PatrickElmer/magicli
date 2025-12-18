@@ -16,4 +16,5 @@ jobs:
           python-version: "3.13"
       - run: python3 -m pip install --upgrade pip
       - run: pip install pytest
-      - run: python3 -m pytest
+      - run: pip install pytest-cov
+      - run: python3 -m pytest --cov=magicli --cov-report=term-missing

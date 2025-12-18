@@ -4,3 +4,4 @@ _*
 .venv
 build
 *.egg-info
+.coverage
