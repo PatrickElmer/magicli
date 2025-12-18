@@ -1,6 +1,6 @@
 # magiᴄʟɪ✨
 
-Automatically generates a CLI from functions.
+Automatically generates a CLI from functions of a module.
 
 ## Install
 
@@ -17,32 +17,42 @@ Simple usage example.
 def hello(name, times=1):
     for _ in range(times):
         print("hello", name)
-
-import magicli
 ```
 
-Make sure you import `magicli` at the end of the file.
+Then run this in your terminal to initialize the CLI:
 
 ```bash
-$ python3 module.py world --times 2
+magicli
+```
+
+You are now able to install your package:
+
+```bash
+pip install .
+```
+
+And then call it:
+
+```bash
+$ hello world --times 2
 hello world
 hello world
 ```
 
 ### Define name of CLI in `pyproject.toml`
 
-Add the following to your `pyproject.toml`.
+The terminal command `magicli` adds the following to your `pyproject.toml`.
 
 ```toml
 [project.scripts]
-hello = "module:hello"
+hello = "magicli:magicli"
 ```
 
-This example assumes the following project structure with the CLI to be created specified in the file `module.py`.
+Important: Make sure the name of your CLI, the module name and the name of the function to be called are the same!
 
 ```bash
 .
-├── module.py
+├── hello.py
 └── pyproject.toml
 ```
 
@@ -54,8 +64,6 @@ hello world
 hello world
 ```
 
-Make sure to adjust the path to `module` if your project layout is different.
-
 ### Using subcommands
 
 ```python
@@ -65,8 +73,6 @@ def hello(): ...
 def world(times=1):
     for _ in range(times):
         print("hello world")
-
-import magicli
 ```
 
 ```bash
@@ -79,4 +85,12 @@ hello world
 
 By default, the docstring of the function will be displayed.
 
-If no docstring is specified, there will be no output.
+If no docstring is specified, an error message will be printed.
+
+## Development
+
+Run pytest with coverage report:
+
+```bash
+python3 -m pytest -s --cov=magicli --cov-report=term-missing
+```
