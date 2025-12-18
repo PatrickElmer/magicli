@@ -1,203 +1,150 @@
-import inspect
+"""Automatically generates a CLI from functions of a module."""
+
 import sys
-from importlib import metadata
+import importlib
+import inspect
+from pathlib import Path
 
-try:
-    __version__ = metadata.version("magicli")
-except metadata.PackageNotFoundError:
-    pass
 
-def magicli(
-    frame_globals=inspect.currentframe().f_back.f_globals,
-    argv=sys.argv,
-    help_message=lambda function: inspect.getdoc(function),
-    version_message=lambda frame_globals: frame_globals.get("__version__"),
-):
-    """Calls a function according to the arguments specified in the argv."""
+__all__ = ["cli"]
 
-    function, argv = get_function_to_call(argv, frame_globals)
+
+def magicli(argv=None):
+    """Parses sys.argv into a module with function names and args/kwargs and tries to call the function."""
+
+    name, *argv = argv or sys.argv
+    name = Path(name).name.replace("-", "_")
+
+    if name == "magicli":
+        raise SystemExit(call(cli, argv))
 
     try:
-        kwargs = get_kwargs(argv, function, help_message)
-    except (IndexError, KeyError):
-        handle_error(frame_globals, argv, help_message, version_message, function)
+        module = importlib.import_module(name)
+    except ModuleNotFoundError:
+        raise SystemExit(f"{name}: command not found")
+
+    if (
+        argv
+        and not (command := argv[0].replace("-", "_")).startswith("_")
+        and command in module.__dict__.get("__all__", [command])
+        and inspect.isfunction(function := module.__dict__.get(command))
+    ):
+        call(function, argv[1:], name)
+    elif inspect.isfunction(function := module.__dict__.get(name)):
+        call(function, argv)
     else:
-        function(**kwargs)
+        raise SystemExit(help_message(help_from_module, module))
 
 
-def handle_error(frame_globals, argv, help_message, version_message, function):
-    if "--version" in argv and (version := version_message(frame_globals)):
-        print(version)
-    elif "--help" in argv and (help := help_message(function)):
-        print(help)
+def call(function, argv, name=None):
+    try:
+        args, kwargs = args_and_kwargs(argv, function)
+        function(*args, **kwargs)
+    except Exception:
+        raise SystemExit(help_message(help_from_function, function, name))
+
+
+def _parse_kwarg(key, argv, parameters={}):
+    if "=" in key:
+        key, value = key.split("=", 1)
+        cast_to = _get_type(parameters[key])
     else:
-        raise SystemExit(help_message(function))
-
-
-def get_function_to_call(argv, frame_globals):
-    """
-    Returns the function to be called based on command line arguments
-    and the command line arguments to be fed into the function.
-    """
-
-    if not argv:
-        raise ValueError
-
-    _all = frame_globals.get("__all__")
-
-    def get_function(function_name):
-        if inspect.isfunction(function := frame_globals.get(function_name)) and function.__module__ == frame_globals["__name__"]:
-            return function
-
-    def is_valid_function(arg):
-        function_name = arg.replace("-", "_")
-        if _all and function_name in _all or not function_name.startswith("_"):
-            return get_function(function_name)
-
-    # Try argv number 2
-    if len(argv) > 1 and argv[0] != argv[1]:
-        if function := is_valid_function(argv[1]):
-            return function, argv[2:]
-
-    # Try argv number 1
-    if function := is_valid_function(argv[0]):
-        return function, argv[1:]
-
-    # Use first function in __all__
-    if _all:
-        for function_name in _all:
-            if function := is_valid_function(function_name):
-                return function, argv[1:]
-
-    # Use first function in module
-    return first_function(frame_globals), argv[1:]
-
-
-def first_function(frame_globals):
-    """Returns the first non-private function of the current module."""
-
-    for function in frame_globals.values():
-        if (
-            inspect.isfunction(function)
-            and not function.__name__.startswith("_")
-            and function.__module__ == frame_globals["__name__"]
-        ):
-            return function
-
-
-def short_to_long_option(short, docstring):
-    """Convert the one character short option into the option specified in the docstring."""
-    if not docstring:
-        raise KeyError
-    start = docstring.index(f"-{short}, --") + 6
-    end = None
-    for char in [" ", "\n"]:
-        if docstring.find(char, start) >= 0:
-            end = docstring.find(char, start)
-            break
-    return docstring[start:end].replace("-", "_")
-
-
-def get_kwargs(argv, function, help_message=None):
-    """Parses argv into kwargs and converts the values according to a function signature."""
-    parameters = inspect.signature(function).parameters
-    parameter_values = list(parameters.values())
-    iterator = iter(argv)
-    kwargs = {}
-
-    for key in iterator:
-        if key.startswith("-"):
-            if not key.startswith("--") and len(key) > 1:
-                _, *flags, short_option = key
-                if not help_message:
-                    raise KeyError
-                docstring = help_message(function)
-
-                for flag in flags:
-                    long_option = short_to_long_option(flag, docstring)
-                    if not long_option:
-                        raise KeyError
-                    key = long_option.replace("-", "_")
-
-                    cast_to = type_to_cast(parameters[key])
-                    if cast_to == bool:
-                        kwargs[key] = not parameters[key].default
-                    elif cast_to == type(None):
-                        kwargs[key] = True
-                    else:
-                        raise KeyError
-
-                long_option = short_to_long_option(short_option, docstring)
-                if not long_option:
-                    raise KeyError
-                key = long_option.replace("-", "_")
-
-            elif len(key) < 3:
-                raise KeyError
-            else:
-                key = key[2:].replace("-", "_")
-
-            value = None
-
-            if "=" in key:
-                key, value = key.split("=", 1)
-            if key in kwargs:
-                raise KeyError
-
-            cast_to = type_to_cast(parameters[key])
-
-            if cast_to == bool:
-                kwargs[key] = not parameters[key].default
-            elif cast_to == type(None):
-                kwargs[key] = True
-            else:
-                if value is None:
-                    value = next(iterator, None)
-                kwargs[key] = cast_to(value)
+        cast_to = _get_type(parameters[key])
+        if cast_to == bool:
+            value = not parameters[key].default
+        elif cast_to == type(None):
+            value = True
         else:
-            parameter = parameter_values.pop(0)
-
-            if parameter.name in kwargs:
-                raise KeyError
-            
-            # Prevent args from being used as kwargs
-            if parameter.default is not inspect._empty:
-                raise KeyError
-
-            cast_to = type_to_cast(parameter)
-            kwargs[parameter.name] = cast_to(key)
-
-    if parameter_values and parameter_values[0].default is inspect._empty:
-        raise IndexError
-
-    return kwargs
+            value = next(argv)
+    return key, value if cast_to in (str, type(None)) else cast_to(value)
 
 
-def type_to_cast(parameter):
-    """Returns the type of a parameter. Defaults to str."""
-
-    if parameter.annotation is not inspect._empty:
+def _get_type(parameter):
+    if parameter.annotation is not parameter.empty:
         return parameter.annotation
-    if parameter.default is not inspect._empty:
+    if parameter.default is not parameter.empty:
         return type(parameter.default)
     return str
 
 
-def calling_frame(import_statement="import magicli"):
-    """
-    Walks the call stack to find the frame with the import statement.
-    Returns the corresponding frame if it is found, and None otherwise.
-    """
+def args_and_kwargs(argv, function):
+    parameters = inspect.signature(function).parameters
+    parameter_values = list(parameters.values())
 
-    frame = sys._getframe()
-    while frame:
-        frameinfo = inspect.getframeinfo(frame)
-        if frameinfo.code_context and frameinfo.code_context[0].lstrip().startswith(
-            import_statement
-        ):
-            return frame
-        frame = frame.f_back
+    args, kwargs = [], {}
+
+    argv = iter(argv)
+    for key in argv:
+        key = key.replace("-", "_")
+        if key.startswith("__"):
+            key, value = _parse_kwarg(key[2:], argv, parameters)
+            kwargs[key] = value
+        else:
+            args.append(_get_type(parameter_values[len(args)])(key))
+
+    return args, kwargs
 
 
-if frame := calling_frame():
-    raise SystemExit(magicli(frame_globals=frame.f_globals))
+def help_message(help_function, obj, *args):
+    return inspect.getdoc(obj) or help_function(obj, *args) or 1
+
+
+def help_from_function(function, name=None):
+    message = [f"usage:\n  {(f"{name} " if name else "") + function.__name__}"]
+    for parameter in inspect.signature(function).parameters.values():
+        if parameter.default == parameter.empty:
+            message.append(parameter.name)
+        else:
+            message.append(f"--{parameter.name}={parameter.default!r}")
+
+    return " ".join(message) or None
+
+
+def help_from_module(module):
+    functions = inspect.getmembers(module, inspect.isfunction)
+    if commands := [name for name, _ in functions]:
+        message = f"usage:\n  {module.__name__} command\n\ncommands:"
+        return "\n  ".join([message] + commands)
+
+
+def cli():
+    """Generates a pyproject.toml file for the current module for use with magicli."""
+
+    if (
+        Path("pyproject.toml").exists()
+        and not input("Overwrite existing pyproject.toml? (yN) ").strip().lower() == "y"
+    ):
+        raise SystemExit(1)
+
+    flat_layout = [path.stem for path in Path().iterdir() if path.suffix == ".py"]
+    src_layout = [
+        path for path in Path().iterdir() if (Path(path) / "__init__.py").exists()
+    ]
+
+    if len(names := flat_layout + src_layout) == 1:
+        name = names[0]
+    else:
+        msg = f"{len(names)} modules found: {', '.join(names)}\n"
+        name = input(msg + "CLI name: ")
+
+    if not name in names:
+        raise SystemExit("Please choose a valid module name.")
+
+    with open("pyproject.toml", "w") as f:
+        f.write(
+            f"""[build-system]
+requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "{name}"
+dynamic = ["version"]
+dependencies = ["magicli"]
+
+[project.scripts]
+{name} = "magicli:magicli"
+"""
+        )
+
+    return """pyproject.toml created.
+Set the version either through `git tag` or `__version__`."""
