@@ -1,0 +1,45 @@
+import pytest
+from pathlib import Path
+import shutil
+import os
+
+
+@pytest.fixture()
+def setup():
+    cwd = Path.cwd()
+    path = Path("tests") / "tmp"
+
+    # Make sure the directory does not exist
+    if path.exists():
+        shutil.rmtree(path)
+
+    path.mkdir(exist_ok=True)
+    (path / "module.py").touch()
+
+    os.chdir(path)
+
+    yield path
+
+    os.chdir(cwd)
+
+    shutil.rmtree(path)
+
+
+@pytest.fixture()
+def two_py():
+    file = Path("two.py")
+    file.touch()
+
+    yield file
+
+    file.unlink()
+
+
+@pytest.fixture()
+def pyproject_toml():
+    file = Path("pyproject.toml")
+    file.touch()
+
+    yield file
+
+    file.unlink()
