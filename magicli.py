@@ -13,15 +13,14 @@ from pathlib import Path
 __all__ = ["cli"]
 
 
-def magicli(argv=None):
+def magicli():
     """
     Parses command-line arguments and calls the appropriate function.
     """
-    try:
-        name, *argv = argv or sys.argv
-    except ValueError:
+    if not sys.argv:
         raise SystemExit(1)
 
+    name, *argv = sys.argv
     name = Path(name).name.replace("-", "_")
 
     if name == "magicli":
