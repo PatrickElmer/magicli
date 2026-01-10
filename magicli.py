@@ -98,9 +98,9 @@ def parse_kwarg(key, argv, parameters):
         cast_to = get_type(parameters[key])
     else:
         cast_to = get_type(parameters[key])
-        if cast_to == bool:
+        if cast_to is bool:
             value = not parameters[key].default
-        elif cast_to == type(None):
+        elif cast_to is type(None):
             value = True
         else:
             value = next(argv)
