@@ -32,17 +32,27 @@ def magicli(argv=None):
     except ModuleNotFoundError:
         raise SystemExit(f"{name}: command not found")
 
+    if function := command_is_callable(argv, module):
+        call(function, argv[1:], name)
+    elif inspect.isfunction(function := module.__dict__.get(name)):
+        call(function, argv)
+    else:
+        raise SystemExit(help_message(help_from_module, module))
+
+
+def command_is_callable(argv, module):
+    """
+    Checks if the first argument is a valid command in the module and returns
+    the function to call if argv[0] is public and not excluded in `__all__,
+    """
     if (
         argv
         and not (command := argv[0].replace("-", "_")).startswith("_")
         and command in module.__dict__.get("__all__", [command])
         and inspect.isfunction(function := module.__dict__.get(command))
     ):
-        call(function, argv[1:], name)
-    elif inspect.isfunction(function := module.__dict__.get(name)):
-        call(function, argv)
-    else:
-        raise SystemExit(help_message(help_from_module, module))
+        return function
+    return None
 
 
 def call(function, argv, name=None):
