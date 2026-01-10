@@ -60,7 +60,7 @@ def _parse_kwarg(key, argv, parameters={}):
             value = True
         else:
             value = next(argv)
-    return key, value if cast_to in (str, type(None)) else cast_to(value)
+    return key, value if cast_to in {str, type(None)} else cast_to(value)
 
 
 def _get_type(parameter):
