@@ -87,7 +87,7 @@ def args_and_kwargs(argv, function):
     return args, kwargs
 
 
-def parse_kwarg(key, argv, parameters={}):
+def parse_kwarg(key, argv, parameters):
     """
     Parses a single keyword argument from command-line arguments.
     Handles '=' syntax for inline values. Casts NoneType values to True
