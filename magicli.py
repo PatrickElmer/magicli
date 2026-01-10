@@ -10,9 +10,6 @@ import inspect
 from pathlib import Path
 
 
-__all__ = ["cli"]
-
-
 def magicli():
     """
     Parses command-line arguments and calls the appropriate function.
