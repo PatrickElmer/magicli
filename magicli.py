@@ -134,9 +134,8 @@ def cli():
     if not name in names:
         raise SystemExit("Please choose a valid module name.")
 
-    with open("pyproject.toml", "w") as f:
-        f.write(
-            f"""[build-system]
+    Path("pyproject.toml").write_text(
+        f"""[build-system]
 requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
 build-backend = "setuptools.build_meta"
 
@@ -148,7 +147,7 @@ dependencies = ["magicli"]
 [project.scripts]
 {name} = "magicli:magicli"
 """
-        )
+    )
 
     return """pyproject.toml created.
 Set the version either through `git tag` or `__version__`."""
