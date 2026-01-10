@@ -12,7 +12,11 @@ __all__ = ["cli"]
 def magicli(argv=None):
     """Parses sys.argv into a module with function names and args/kwargs and tries to call the function."""
 
-    name, *argv = argv or sys.argv
+    try:
+        name, *argv = argv or sys.argv
+    except ValueError:
+        raise SystemExit(1)
+
     name = Path(name).name.replace("-", "_")
 
     if name == "magicli":

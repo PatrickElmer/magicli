@@ -53,6 +53,12 @@ def test_wrong_command_not_called(mocked):
         magicli()
 
 
+def test_empty_sys_argv():
+    sys.argv = []
+    with pytest.raises(SystemExit):
+        magicli()
+
+
 def _create_empty_module(name):
     return type(sys)(name)
 
