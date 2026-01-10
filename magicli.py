@@ -1,4 +1,8 @@
-"""Automatically generates a CLI from functions of a module."""
+"""
+Magicli generates command-line interfaces from Python modules
+by introspecting its functions and automatically parsing command-
+line arguments based on function signatures.
+"""
 
 import sys
 import importlib
@@ -10,8 +14,9 @@ __all__ = ["cli"]
 
 
 def magicli(argv=None):
-    """Parses sys.argv into a module with function names and args/kwargs and tries to call the function."""
-
+    """
+    Parses command-line arguments and calls the appropriate function.
+    """
     try:
         name, *argv = argv or sys.argv
     except ValueError:
@@ -41,6 +46,10 @@ def magicli(argv=None):
 
 
 def call(function, argv, name=None):
+    """
+    Converts arguments to function parameters and calls the function.
+    Displays a help message if an exception occurs.
+    """
     try:
         args, kwargs = args_and_kwargs(argv, function)
         function(*args, **kwargs)
@@ -49,10 +58,18 @@ def call(function, argv, name=None):
 
 
 def help_message(help_function, obj, *args):
+    """
+    Generates a help message for a function or module.
+    Returns the object's docstring if available, otherwise generates the help message
+    using the provided help_function.
+    """
     return inspect.getdoc(obj) or help_function(obj, *args) or 1
 
 
 def args_and_kwargs(argv, function):
+    """
+    Parses command-line arguments into positional and keyword arguments.
+    """
     parameters = inspect.signature(function).parameters
     parameter_values = list(parameters.values())
 
@@ -71,6 +88,11 @@ def args_and_kwargs(argv, function):
 
 
 def parse_kwarg(key, argv, parameters={}):
+    """
+    Parses a single keyword argument from command-line arguments.
+    Handles '=' syntax for inline values. Casts NoneType values to True
+    and bool and boolean to not default.
+    """
     if "=" in key:
         key, value = key.split("=", 1)
         cast_to = get_type(parameters[key])
@@ -86,6 +108,10 @@ def parse_kwarg(key, argv, parameters={}):
 
 
 def get_type(parameter):
+    """
+    Determines the type based on function signature annotations or defaults.
+    Falls back to str if neither is available.
+    """
     if parameter.annotation is not parameter.empty:
         return parameter.annotation
     if parameter.default is not parameter.empty:
@@ -94,6 +120,11 @@ def get_type(parameter):
 
 
 def help_from_function(function, name=None):
+    """
+    Generates a help message for a function based on its signature.
+    Displays the function name, required positional arguments, and
+    optional keyword arguments with their default values.
+    """
     message = [f"usage:\n  {(f"{name} " if name else "") + function.__name__}"]
     for parameter in inspect.signature(function).parameters.values():
         if parameter.default == parameter.empty:
@@ -105,15 +136,25 @@ def help_from_function(function, name=None):
 
 
 def help_from_module(module):
+    """
+    Generates a help message for a module and lists available commands.
+    Lists all public functions that are not excluded in `__all__`.
+    """
     functions = inspect.getmembers(module, inspect.isfunction)
-    if commands := [name for name, _ in functions]:
+    if commands := [
+        name
+        for name, _ in functions
+        if not name.startswith("_") and name in module.__dict__.get("__all__", [name])
+    ]:
         message = f"usage:\n  {module.__name__} command\n\ncommands:"
         return "\n  ".join([message] + commands)
 
 
 def cli():
-    """Generates a pyproject.toml file for the current module for use with magicli."""
-
+    """
+    Generates a pyproject.toml configuration file for a module and sets up the project script.
+    The CLI name must be the same as the module name.
+    """
     if (
         Path("pyproject.toml").exists()
         and not input("Overwrite existing pyproject.toml? (yN) ").strip().lower() == "y"
