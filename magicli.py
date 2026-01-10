@@ -48,6 +48,28 @@ def call(function, argv, name=None):
         raise SystemExit(help_message(help_from_function, function, name))
 
 
+def help_message(help_function, obj, *args):
+    return inspect.getdoc(obj) or help_function(obj, *args) or 1
+
+
+def args_and_kwargs(argv, function):
+    parameters = inspect.signature(function).parameters
+    parameter_values = list(parameters.values())
+
+    args, kwargs = [], {}
+
+    argv = iter(argv)
+    for key in argv:
+        key = key.replace("-", "_")
+        if key.startswith("__"):
+            key, value = parse_kwarg(key[2:], argv, parameters)
+            kwargs[key] = value
+        else:
+            args.append(get_type(parameter_values[len(args)])(key))
+
+    return args, kwargs
+
+
 def parse_kwarg(key, argv, parameters={}):
     if "=" in key:
         key, value = key.split("=", 1)
@@ -69,28 +91,6 @@ def get_type(parameter):
     if parameter.default is not parameter.empty:
         return type(parameter.default)
     return str
-
-
-def args_and_kwargs(argv, function):
-    parameters = inspect.signature(function).parameters
-    parameter_values = list(parameters.values())
-
-    args, kwargs = [], {}
-
-    argv = iter(argv)
-    for key in argv:
-        key = key.replace("-", "_")
-        if key.startswith("__"):
-            key, value = parse_kwarg(key[2:], argv, parameters)
-            kwargs[key] = value
-        else:
-            args.append(get_type(parameter_values[len(args)])(key))
-
-    return args, kwargs
-
-
-def help_message(help_function, obj, *args):
-    return inspect.getdoc(obj) or help_function(obj, *args) or 1
 
 
 def help_from_function(function, name=None):
