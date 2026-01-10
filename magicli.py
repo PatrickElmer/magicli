@@ -127,7 +127,7 @@ def help_from_function(function, name=None):
     """
     message = [f"usage:\n  {(f"{name} " if name else "") + function.__name__}"]
     for parameter in inspect.signature(function).parameters.values():
-        if parameter.default == parameter.empty:
+        if parameter.default is parameter.empty:
             message.append(parameter.name)
         else:
             message.append(f"--{parameter.name}={parameter.default!r}")
