@@ -48,12 +48,12 @@ def call(function, argv, name=None):
         raise SystemExit(help_message(help_from_function, function, name))
 
 
-def _parse_kwarg(key, argv, parameters={}):
+def parse_kwarg(key, argv, parameters={}):
     if "=" in key:
         key, value = key.split("=", 1)
-        cast_to = _get_type(parameters[key])
+        cast_to = get_type(parameters[key])
     else:
-        cast_to = _get_type(parameters[key])
+        cast_to = get_type(parameters[key])
         if cast_to == bool:
             value = not parameters[key].default
         elif cast_to == type(None):
@@ -63,7 +63,7 @@ def _parse_kwarg(key, argv, parameters={}):
     return key, value if cast_to in {str, type(None)} else cast_to(value)
 
 
-def _get_type(parameter):
+def get_type(parameter):
     if parameter.annotation is not parameter.empty:
         return parameter.annotation
     if parameter.default is not parameter.empty:
@@ -81,10 +81,10 @@ def args_and_kwargs(argv, function):
     for key in argv:
         key = key.replace("-", "_")
         if key.startswith("__"):
-            key, value = _parse_kwarg(key[2:], argv, parameters)
+            key, value = parse_kwarg(key[2:], argv, parameters)
             kwargs[key] = value
         else:
-            args.append(_get_type(parameter_values[len(args)])(key))
+            args.append(get_type(parameter_values[len(args)])(key))
 
     return args, kwargs
 
