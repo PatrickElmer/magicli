@@ -99,12 +99,11 @@ def parse_kwarg(key, argv, parameters):
     else:
         cast_to = get_type(parameters[key])
         if cast_to is bool:
-            value = not parameters[key].default
+            return key, not parameters[key].default
         elif cast_to is type(None):
-            value = True
-        else:
-            value = next(argv)
-    return key, value if cast_to in {str, type(None)} else cast_to(value)
+            return key, True
+        value = next(argv)
+    return key, value if cast_to is str else cast_to(value)
 
 
 def get_type(parameter):
