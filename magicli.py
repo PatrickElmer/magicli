@@ -71,7 +71,7 @@ def args_and_kwargs(argv, function):
     Parses command-line arguments into positional and keyword arguments.
     """
     parameters = inspect.signature(function).parameters
-    parameter_values = list(parameters.values())
+    parameter_list = list(parameters.values())
 
     args, kwargs = [], {}
 
@@ -82,7 +82,7 @@ def args_and_kwargs(argv, function):
             key, value = parse_kwarg(key[2:], argv, parameters)
             kwargs[key] = value
         else:
-            args.append(get_type(parameter_values[len(args)])(key))
+            args.append(get_type(parameter_list[len(args)])(key))
 
     return args, kwargs
 
