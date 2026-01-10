@@ -15,12 +15,16 @@ def test_help_from_function_with_name():
 
 def test_help_from_module():
     import sys
+
     module = type(sys)("name")
     module.command = f1
-    assert help_from_module(module) == """\
+    assert (
+        help_from_module(module)
+        == """\
 usage:
   name command
 
 commands:
   command\
 """
+    )
