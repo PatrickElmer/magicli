@@ -102,6 +102,8 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
     """
     for short in short_options:
         long = short_to_long_option(short, docstring)
+        if not long in parameters:
+            raise SystemExit(f"Invalid long option: {long}")
         cast_to = get_type(parameters[long])
         if cast_to is bool:
             kwargs[long] = not parameters[long].default
