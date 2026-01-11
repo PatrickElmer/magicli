@@ -87,10 +87,45 @@ def args_and_kwargs(argv, function):
         if key.startswith("__"):
             key, value = parse_kwarg(key[2:], argv, parameters)
             kwargs[key] = value
+        elif key.startswith("_"):
+            docstring = inspect.getdoc(function) or ""
+            parse_short_options(key[1:], docstring, argv, parameters, kwargs)
         else:
             args.append(get_type(parameter_list[len(args)])(key))
 
     return args, kwargs
+
+
+def parse_short_options(short_options, docstring, argv, parameters, kwargs):
+    """
+    Converts short options into long options and casts into correct types.
+    """
+    for short in short_options:
+        long = short_to_long_option(short, docstring)
+        if not long in parameters:
+            raise SystemExit(f"Invalid long option: {long}")
+        cast_to = get_type(parameters[long])
+        if cast_to is bool:
+            kwargs[long] = not parameters[long].default
+        elif cast_to is type(None):
+            kwargs[long] = True
+    if long not in kwargs:
+        kwargs[long] = cast_to(next(argv))
+
+
+def short_to_long_option(short, docstring):
+    """
+    Converts a one character short option to a long option accoring to the help message.
+    """
+    template = f"-{short}, --"
+    if (start := docstring.find(template)) != -1:
+        start += len(template)
+        for i, char in enumerate(docstring[start:], start):
+            if char in {" ", "\n"}:
+                return docstring[start:i]
+        if len(docstring) - start > 1:
+            return docstring[start:]
+    raise SystemExit(f"Invalid short option: {short}")
 
 
 def parse_kwarg(key, argv, parameters):
