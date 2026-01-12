@@ -17,8 +17,8 @@ def magicli():
     if not sys.argv:
         raise SystemExit(1)
 
-    name, *argv = sys.argv
-    name = Path(name).name.replace("-", "_")
+    name = Path(sys.argv[0]).name.replace("-", "_")
+    argv = sys.argv[1:]
 
     if name == "magicli":
         raise SystemExit(call(cli, argv))
