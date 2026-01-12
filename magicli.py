@@ -17,7 +17,7 @@ def magicli():
     if not sys.argv:
         raise SystemExit(1)
 
-    name = Path(sys.argv[0]).name.replace("-", "_")
+    name = Path(sys.argv[0]).name
     argv = sys.argv[1:]
 
     if name == "magicli":
@@ -25,6 +25,7 @@ def magicli():
 
     try:
         module = importlib.import_module(name)
+        name = name.replace("-", "_")
     except ModuleNotFoundError:
         raise SystemExit(f"{name}: command not found")
 
