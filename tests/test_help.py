@@ -28,3 +28,23 @@ commands:
   command\
 """
     )
+
+
+def test_help_from_module_with_version():
+    import sys
+
+    module = type(sys)("name")
+    module.__dict__["__version__"] = "0.1.2"
+    module.command = f1
+    assert (
+        help_from_module(module)
+        == """\
+name (0.1.2)
+
+usage:
+  name command
+
+commands:
+  command\
+"""
+    )

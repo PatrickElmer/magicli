@@ -189,7 +189,19 @@ def help_from_module(module):
         if not name.startswith("_") and name in module.__dict__.get("__all__", [name])
     ]:
         message = f"usage:\n  {module.__name__} command\n\ncommands:"
+        if version := get_version(module):
+            message = f"{module.__name__} ({version})\n\n" + message
         return "\n  ".join([message] + commands)
+
+
+def get_version(module):
+    """
+    Returns the version of a module from its metadata or __version__ attribute.
+    """
+    try:
+        return importlib.metadata.version(module.__name__)
+    except importlib.metadata.PackageNotFoundError:
+        return module.__dict__.get("__version__")
 
 
 def cli():
