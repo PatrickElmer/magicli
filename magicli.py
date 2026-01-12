@@ -25,9 +25,10 @@ def magicli():
 
     try:
         module = importlib.import_module(name)
-        name = name.replace("-", "_")
     except ModuleNotFoundError:
         raise SystemExit(f"{name}: command not found")
+
+    name = name.replace("-", "_")
 
     if function := command_is_callable(argv, module):
         call(function, argv[1:], name)
