@@ -111,8 +111,6 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
             kwargs[long] = not parameters[long].default
         elif cast_to is type(None):
             kwargs[long] = True
-        else:
-            raise SystemExit(f"--{long}: invalid flag")
     if long not in kwargs:
         kwargs[long] = cast_to(next(argv))
 
