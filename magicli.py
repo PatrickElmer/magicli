@@ -105,12 +105,14 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
     for short in short_options:
         long = short_to_long_option(short, docstring)
         if not long in parameters:
-            raise SystemExit(f"Invalid long option: {long}")
+            raise SystemExit(f"--{long}: invalid long option")
         cast_to = get_type(parameters[long])
         if cast_to is bool:
             kwargs[long] = not parameters[long].default
         elif cast_to is type(None):
             kwargs[long] = True
+        else:
+            raise SystemExit(f"--{long}: invalid flag")
     if long not in kwargs:
         kwargs[long] = cast_to(next(argv))
 
@@ -127,7 +129,7 @@ def short_to_long_option(short, docstring):
                 return docstring[start:i]
         if len(docstring) - start > 1:
             return docstring[start:]
-    raise SystemExit(f"Invalid short option: {short}")
+    raise SystemExit(f"-{short}: invalid short option")
 
 
 def parse_kwarg(key, argv, parameters):
