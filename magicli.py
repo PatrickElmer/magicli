@@ -30,7 +30,7 @@ def magicli():
 
     name = name.replace("-", "_")
 
-    if function := command_is_callable(argv, module):
+    if function := is_command(argv, module):
         call(function, argv[1:], name)
     elif inspect.isfunction(function := module.__dict__.get(name)):
         call(function, argv)
@@ -38,7 +38,7 @@ def magicli():
         raise SystemExit(help_message(help_from_module, module))
 
 
-def command_is_callable(argv, module):
+def is_command(argv, module):
     """
     Checks if the first argument is a valid command in the module and returns
     the function to call if argv[0] is public and not excluded in `__all__,
@@ -105,7 +105,7 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
     for short in short_options:
         long = short_to_long_option(short, docstring)
         if not long in parameters:
-            raise SystemExit(f"Invalid long option: {long}")
+            raise SystemExit(f"--{long}: invalid long option")
         cast_to = get_type(parameters[long])
         if cast_to is bool:
             kwargs[long] = not parameters[long].default
@@ -127,7 +127,7 @@ def short_to_long_option(short, docstring):
                 return docstring[start:i]
         if len(docstring) - start > 1:
             return docstring[start:]
-    raise SystemExit(f"Invalid short option: {short}")
+    raise SystemExit(f"-{short}: invalid short option")
 
 
 def parse_kwarg(key, argv, parameters):
@@ -237,7 +237,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "{name}"
 dynamic = ["version"]
-dependencies = ["magicli"]
+dependencies = ["magicli<3"]
 
 [project.scripts]
 {name} = "magicli:magicli"

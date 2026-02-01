@@ -1,9 +1,12 @@
 name: Pytest
 
 on:
+  push:
+    paths:
+      - "**/*.py"
   pull_request:
-    branches:
-    - main
+    paths:
+      - "**/*.py"
 
 jobs:
   test:
