@@ -239,7 +239,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "{name}"
 dynamic = ["version"]
-dependencies = ["magicli"]
+dependencies = ["magicli<3"]
 
 [project.scripts]
 {name} = "magicli:magicli"
