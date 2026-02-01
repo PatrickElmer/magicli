@@ -30,7 +30,7 @@ def magicli():
 
     name = name.replace("-", "_")
 
-    if function := command_is_callable(argv, module):
+    if function := is_command(argv, module):
         call(function, argv[1:], name)
     elif inspect.isfunction(function := module.__dict__.get(name)):
         call(function, argv)
@@ -38,7 +38,7 @@ def magicli():
         raise SystemExit(help_message(help_from_module, module))
 
 
-def command_is_callable(argv, module):
+def is_command(argv, module):
     """
     Checks if the first argument is a valid command in the module and returns
     the function to call if argv[0] is public and not excluded in `__all__,
