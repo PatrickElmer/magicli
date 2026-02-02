@@ -89,7 +89,7 @@ def test_module_is_magicli():
 def _create_module_with_docstring(name):
     module = type(sys)(name)
     module.name = lambda aa="", b=None: None
-    module.__doc__ = "-a, --aa/n-b, --bb"
+    module.name.__doc__ = "-a, --aa/n-b, --bb"
     return module
 
 
