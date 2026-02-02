@@ -95,6 +95,6 @@ def _create_module_with_docstring(name):
 
 @mock.patch("importlib.import_module", side_effect=_create_module_with_docstring)
 def test_short_option_with_wrong_type(mocked):
-    sys.argv = ["name", "-ab]
+    sys.argv = ["name", "-ab"]
     with pytest.raises(SystemExit):
         magicli()
