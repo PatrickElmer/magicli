@@ -84,3 +84,17 @@ def test_module_is_magicli():
     with pytest.raises(SystemExit) as error:
         magicli()
     assert error.value.code == 1
+
+
+def _create_module_with_docstring(name):
+    module = type(sys)(name)
+    module.name = lambda aa="", bb=None: None
+    module.name.__doc__ = "-a, --aa\n-b, --bb"
+    return module
+
+
+@mock.patch("importlib.import_module", side_effect=_create_module_with_docstring)
+def test_short_option_with_wrong_type(mocked):
+    sys.argv = ["name", "-ab"]
+    with pytest.raises(SystemExit):
+        magicli()
