@@ -71,11 +71,9 @@ def args_and_kwargs(argv, function):
     """
     parameters = inspect.signature(function).parameters
     parameter_list = list(parameters.values())
-
     args, kwargs = [], {}
 
-    argv = iter(argv)
-    for key in argv:
+    for key in (argv := iter(argv)):
         key = key.replace("-", "_")
         if key.startswith("__"):
             key, value = parse_kwarg(key[2:], argv, parameters)
