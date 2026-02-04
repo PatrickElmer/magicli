@@ -65,15 +65,6 @@ def call(function, argv, name=None):
         raise SystemExit(help_message(help_from_function, function, name))
 
 
-def help_message(help_function, obj, *args):
-    """
-    Generates a help message for a function or module.
-    Returns the object's docstring if available, otherwise generates the help message
-    using the provided help_function.
-    """
-    return inspect.getdoc(obj) or help_function(obj, *args) or 1
-
-
 def args_and_kwargs(argv, function):
     """
     Parses command-line arguments into positional and keyword arguments.
@@ -161,6 +152,15 @@ def get_type(parameter):
     if parameter.default is not parameter.empty:
         return type(parameter.default)
     return str
+
+
+def help_message(help_function, obj, *args):
+    """
+    Generates a help message for a function or module.
+    Returns the object's docstring if available, otherwise generates the help message
+    using the provided help_function.
+    """
+    return inspect.getdoc(obj) or help_function(obj, *args) or 1
 
 
 def help_from_function(function, name=None):
