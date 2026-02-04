@@ -247,7 +247,8 @@ def cli():
         raise SystemExit("Please choose a valid module name.")
 
     pyproject.write_text(
-        f"""[build-system]
+        f"""\
+[build-system]
 requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
 build-backend = "setuptools.build_meta"
 
