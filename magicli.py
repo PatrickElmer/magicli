@@ -169,14 +169,15 @@ def help_from_function(function, name=None):
     Displays the function name, required positional arguments, and
     optional keyword arguments with their default values.
     """
-    message = [f"usage:\n  {(f"{name} " if name else "") + function.__name__}"]
-    for parameter in inspect.signature(function).parameters.values():
-        if parameter.default is parameter.empty:
-            message.append(parameter.name)
-        else:
-            message.append(f"--{parameter.name}={parameter.default!r}")
+    message = [name] if name else []
+    message.append(function.__name__)
+    message.extend(map(format_kwarg, inspect.signature(function).parameters.values()))
+    return format_message([["usage:", " ".join(message)]])
 
-    return " ".join(message) or None
+
+def format_kwarg(kwarg):
+    """Formats a parameter as positional or optional argument."""
+    return kwarg.name if kwarg.default is kwarg.empty else f"[--{kwarg.name}]"
 
 
 def help_from_module(module):
@@ -184,16 +185,31 @@ def help_from_module(module):
     Generates a help message for a module and lists available commands.
     Lists all public functions that are not excluded in `__all__`.
     """
-    functions = inspect.getmembers(module, inspect.isfunction)
-    if commands := [
+    message = []
+
+    if version := get_version(module):
+        message.append([f"{module.__name__} {version}"])
+
+    message.append(["usage:", f"{module.__name__} command"])
+
+    if commands := get_commands(module):
+        message.append(["commands:"] + commands)
+
+    return format_message(message)
+
+
+def format_message(blocks):
+    """Formats blocks of text with proper indentation."""
+    return "\n\n".join("\n  ".join(block) for block in blocks)
+
+
+def get_commands(module):
+    """Returns list of public commands, unless not present in `__all__`."""
+    return [
         name
-        for name, _ in functions
+        for name, _ in inspect.getmembers(module, inspect.isfunction)
         if not name.startswith("_") and name in module.__dict__.get("__all__", [name])
-    ]:
-        message = f"usage:\n  {module.__name__} command\n\ncommands:"
-        if version := get_version(module):
-            message = f"{module.__name__} ({version})\n\n" + message
-        return "\n  ".join([message] + commands)
+    ]
 
 
 def get_version(module):
