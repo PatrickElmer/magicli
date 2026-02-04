@@ -1,21 +1,20 @@
 from magicli import help_from_function
 from magicli import help_from_module
+import sys
 
 
 def f1(arg, kwarg=1): ...
 
 
 def test_help_from_function():
-    assert help_from_function(f1) == "usage:\n  f1 arg --kwarg=1"
+    assert help_from_function(f1) == "usage:\n  f1 arg [--kwarg]"
 
 
 def test_help_from_function_with_name():
-    assert help_from_function(f1, "name") == "usage:\n  name f1 arg --kwarg=1"
+    assert help_from_function(f1, "name") == "usage:\n  name f1 arg [--kwarg]"
 
 
 def test_help_from_module():
-    import sys
-
     module = type(sys)("name")
     module.command = f1
     assert (
@@ -31,15 +30,13 @@ commands:
 
 
 def test_help_from_module_with_version():
-    import sys
-
     module = type(sys)("name")
     module.__dict__["__version__"] = "0.1.2"
     module.command = f1
     assert (
         help_from_module(module)
         == """\
-name (0.1.2)
+name 0.1.2
 
 usage:
   name command
