@@ -225,13 +225,14 @@ def cli():
     Generates a pyproject.toml configuration file for a module and sets up the project script.
     The CLI name must be the same as the module name.
     """
+    pyproject = Path("pyproject.toml")
     if (
-        Path("pyproject.toml").exists()
+        pyproject.exists()
         and not input("Overwrite existing pyproject.toml? (yN) ").strip().lower() == "y"
     ):
         raise SystemExit(1)
 
-    flat_layout = [path.stem for path in Path().iterdir() if path.suffix == ".py"]
+    flat_layout = [path.stem for path in Path().glob("*.py")]
     src_layout = [
         path for path in Path().iterdir() if (Path(path) / "__init__.py").exists()
     ]
@@ -245,7 +246,7 @@ def cli():
     if not name in names:
         raise SystemExit("Please choose a valid module name.")
 
-    Path("pyproject.toml").write_text(
+    pyproject.write_text(
         f"""[build-system]
 requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
 build-backend = "setuptools.build_meta"
