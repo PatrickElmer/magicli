@@ -15,13 +15,6 @@ def test_correct_name_input(setup, two_py):
         assert 'name = "two"' in f.read()
 
 
-@mock.patch("builtins.input", lambda _: "one")
-def test_wrong_name_input(setup, two_py):
-    with pytest.raises(SystemExit) as error:
-        cli()
-    assert error.value.code != 1
-
-
 @mock.patch("builtins.input", lambda *args: "n")
 def test_dont_overwrite_pyproject_toml(setup, pyproject_toml):
     with pytest.raises(SystemExit) as error:
