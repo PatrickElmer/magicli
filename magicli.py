@@ -232,11 +232,10 @@ def get_project_name():
     if len(names := flat_layout + src_layout) == 1:
         return names[0]
 
-    msg = f"{len(names)} modules found: {', '.join(names)}\n"
-    if (name := input(msg + "CLI name: ")) in names:
+    if (name := input("CLI name: ")):
         return name
 
-    raise SystemExit("Please choose a valid module name.")
+    raise SystemExit(1)
 
 
 def cli():
