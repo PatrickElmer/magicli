@@ -232,7 +232,7 @@ def get_project_name():
     if len(names := flat_layout + src_layout) == 1:
         return names[0]
 
-    if (name := input("CLI name: ")):
+    if name := input("CLI name: "):
         return name
 
     raise SystemExit(1)
