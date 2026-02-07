@@ -220,33 +220,40 @@ def get_version(module):
         return module.__dict__.get("__version__")
 
 
-def cli():
+def get_project_name():
     """
-    Generates a pyproject.toml configuration file for a module and sets up the project script.
-    The CLI name must be the same as the module name.
+    Detect project name from project structure.
     """
-    if (
-        Path("pyproject.toml").exists()
-        and not input("Overwrite existing pyproject.toml? (yN) ").strip().lower() == "y"
-    ):
-        raise SystemExit(1)
-
-    flat_layout = [path.stem for path in Path().iterdir() if path.suffix == ".py"]
+    flat_layout = [path.stem for path in Path().glob("*.py")]
     src_layout = [
         path for path in Path().iterdir() if (Path(path) / "__init__.py").exists()
     ]
 
     if len(names := flat_layout + src_layout) == 1:
-        name = names[0]
-    else:
-        msg = f"{len(names)} modules found: {', '.join(names)}\n"
-        name = input(msg + "CLI name: ")
+        return names[0]
 
-    if not name in names:
-        raise SystemExit("Please choose a valid module name.")
+    if name := input("CLI name: "):
+        return name
 
-    Path("pyproject.toml").write_text(
-        f"""[build-system]
+    raise SystemExit(1)
+
+
+def cli():
+    """
+    Generates a pyproject.toml configuration file for a module and sets up the project script.
+    The CLI name must be the same as the module name.
+    """
+    pyproject = Path("pyproject.toml")
+    if (
+        pyproject.exists()
+        and input("Overwrite existing pyproject.toml? (yN) ").strip().lower() != "y"
+    ):
+        raise SystemExit(1)
+
+    name = get_project_name()
+    pyproject.write_text(
+        f"""\
+[build-system]
 requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
 build-backend = "setuptools.build_meta"
 
