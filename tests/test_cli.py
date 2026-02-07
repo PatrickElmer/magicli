@@ -30,7 +30,7 @@ def test_overwrite_pyproject_toml(setup, pyproject_toml):
 
 
 @mock.patch("builtins.input", lambda *args: "")
-def test_empty_cli_name_failure():
+def test_empty_cli_name_failure(setup, two_py):
     with pytest.raises(SystemExit) as error:
         get_project_name()
     assert error.value.code == 1
