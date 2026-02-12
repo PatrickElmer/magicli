@@ -41,7 +41,7 @@ def magicli():
 def is_command(argv, module):
     """
     Checks if the first argument is a valid command in the module and returns
-    the function to call if argv[0] is public and not excluded in `__all__,
+    the function to call if `argv[0]` is public and not excluded in `__all__`,
     """
     if (
         argv
@@ -124,8 +124,8 @@ def short_to_long_option(short, docstring):
 def parse_kwarg(key, argv, parameters):
     """
     Parses a single keyword argument from command-line arguments.
-    Handles '=' syntax for inline values. Casts NoneType values to True
-    and bool and boolean to not default.
+    Handles '=' syntax for inline values. Casts `NoneType` values to `True`
+    and boolean values to `not default`.
     """
     if "=" in key:
         key, value = key.split("=", 1)
@@ -143,7 +143,7 @@ def parse_kwarg(key, argv, parameters):
 def get_type(parameter):
     """
     Determines the type based on function signature annotations or defaults.
-    Falls back to str if neither is available.
+    Falls back to `str` if neither is available.
     """
     if parameter.annotation is not parameter.empty:
         return parameter.annotation
@@ -156,7 +156,7 @@ def help_message(help_function, obj, *args):
     """
     Generates a help message for a function or module.
     Returns the object's docstring if available, otherwise generates the help message
-    using the provided help_function.
+    using the provided `help_function`.
     """
     return inspect.getdoc(obj) or help_function(obj, *args) or 1
 
@@ -212,7 +212,7 @@ def get_commands(module):
 
 def get_version(module):
     """
-    Returns the version of a module from its metadata or __version__ attribute.
+    Returns the version of a module from its metadata or `__version__` attribute.
     """
     try:
         return importlib.metadata.version(module.__name__)
@@ -240,7 +240,7 @@ def get_project_name():
 
 def cli():
     """
-    Generates a pyproject.toml configuration file for a module and sets up the project script.
+    Generates a "pyproject.toml" configuration file for a module and sets up the project script.
     The CLI name must be the same as the module name.
     """
     pyproject = Path("pyproject.toml")
