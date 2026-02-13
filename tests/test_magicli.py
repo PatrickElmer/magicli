@@ -22,6 +22,7 @@ def _create_module(name):
     module.name = function_1
     module.command = function_2
     module.__doc__ = "docstring"
+    module.__version__ = "1.2.3"
     return module
 
 
@@ -98,3 +99,19 @@ def test_short_option_with_wrong_type(mocked):
     sys.argv = ["name", "-ab"]
     with pytest.raises(SystemExit):
         magicli()
+
+
+@mock.patch("importlib.import_module", side_effect=_create_module)
+def test_version(mocked):
+    sys.argv = ["name", "--version"]
+    with pytest.raises(SystemExit) as error:
+        magicli()
+    assert error.value.code == "1.2.3"
+
+
+@mock.patch("importlib.import_module", side_effect=_create_module)
+def test_version_with_command(mocked):
+    sys.argv = ["name", "command", "--version"]
+    with pytest.raises(SystemExit) as error:
+        magicli()
+    assert error.value.code == "1.2.3"
