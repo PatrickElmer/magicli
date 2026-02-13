@@ -101,7 +101,7 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
     for short in short_options:
         long = short_to_long_option(short, docstring)
         if not long in parameters:
-            raise SystemExit(f"--{long}: invalid long option")
+            raise ValueError(f"--{long}: invalid long option")
         cast_to = get_type(parameters[long])
         if cast_to is bool:
             kwargs[long] = not parameters[long].default
@@ -110,7 +110,7 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
         elif short == short_options[-1]:
             kwargs[long] = cast_to(next(argv))
         else:
-            raise SystemExit(f"-{short}: invalid type")
+            raise ValueError(f"-{short}: invalid type")
 
 
 def short_to_long_option(short, docstring):
@@ -125,7 +125,7 @@ def short_to_long_option(short, docstring):
                 return docstring[start:i]
         if len(docstring) - start > 1:
             return docstring[start:]
-    raise SystemExit(f"-{short}: invalid short option")
+    raise ValueError(f"-{short}: invalid short option")
 
 
 def parse_kwarg(key, argv, parameters):
@@ -136,9 +136,9 @@ def parse_kwarg(key, argv, parameters):
     """
     if "=" in key:
         key, value = key.split("=", 1)
-        cast_to = get_type(parameters[key])
+        cast_to = get_type(parameters.get(key))
     else:
-        cast_to = get_type(parameters[key])
+        cast_to = get_type(parameters.get(key))
         if cast_to is bool:
             return key, not parameters[key].default
         elif cast_to is type(None):
@@ -152,6 +152,8 @@ def get_type(parameter):
     Determines the type based on function signature annotations or defaults.
     Falls back to `str` if neither is available.
     """
+    if parameter is None:
+        raise ValueError("Unknown parameter")
     if parameter.annotation is not parameter.empty:
         return parameter.annotation
     if parameter.default is not parameter.empty:
