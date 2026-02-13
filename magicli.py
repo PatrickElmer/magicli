@@ -86,7 +86,7 @@ def args_and_kwargs(argv, function):
             key, value = parse_kwarg(key[2:], argv, parameters)
             kwargs[key] = value
         elif key.startswith("_"):
-            docstring = inspect.getdoc(function) or ""
+            docstring = get_docstring(function)
             parse_short_options(key[1:], docstring, argv, parameters, kwargs)
         else:
             args.append(get_type(parameter_list[len(args)])(key))
@@ -215,6 +215,13 @@ def get_commands(module):
         for name, _ in inspect.getmembers(module, inspect.isfunction)
         if not name.startswith("_") and name in module.__dict__.get("__all__", [name])
     ]
+
+
+def get_docstring(function):
+    """
+    Returns the cleaned up docstring of a function or an empty string.
+    """
+    return inspect.getdoc(function) or ""
 
 
 def get_version(module):
