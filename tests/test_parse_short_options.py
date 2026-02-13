@@ -43,7 +43,7 @@ def test_parse_short_options_failures():
         {"parameters": {}},
         {"docstring": ""},
     ]:
-        with pytest.raises(SystemExit):
+        with pytest.raises(ValueError):
             successful_function(**kwargs)
 
 
@@ -68,5 +68,5 @@ def test_short_to_long_option(docstring):
     ],
 )
 def test_short_to_long_option_failures(docstring):
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         short_to_long_option("a", docstring)
