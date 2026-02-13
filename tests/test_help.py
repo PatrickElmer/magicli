@@ -7,11 +7,18 @@ def f1(arg, kwarg=1): ...
 
 
 def test_help_from_function():
-    assert help_from_function(f1) == "usage:\n  f1 arg [--kwarg]"
+    assert help_from_function(f1) == "usage:\n  f1 arg [--kwarg] [--version]"
 
 
 def test_help_from_function_with_name():
-    assert help_from_function(f1, "name") == "usage:\n  name f1 arg [--kwarg]"
+    assert help_from_function(f1, "name") == "usage:\n  name f1 arg [--kwarg] [--version]"
+
+
+def f2(version=1): ...
+
+
+def test_help_from_function_with_custom_version():
+    assert help_from_function(f2) == "usage:\n  f2 [--version]"
 
 
 def test_help_from_module():
