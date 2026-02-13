@@ -169,9 +169,12 @@ def help_from_function(function, name=None):
     Displays the function name, required positional arguments, and
     optional keyword arguments with their default values.
     """
+    parameters = inspect.signature(function).parameters
     message = [name] if name else []
     message.append(function.__name__)
-    message.extend(map(format_kwarg, inspect.signature(function).parameters.values()))
+    message.extend(map(format_kwarg, parameters.values()))
+    if "version" not in parameters:
+        message.append("[--version]")
     return format_message([["usage:", " ".join(message)]])
 
 
