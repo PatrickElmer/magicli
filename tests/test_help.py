@@ -11,7 +11,9 @@ def test_help_from_function():
 
 
 def test_help_from_function_with_name():
-    assert help_from_function(f1, "name") == "usage:\n  name f1 arg [--kwarg] [--version]"
+    assert (
+        help_from_function(f1, "name") == "usage:\n  name f1 arg [--kwarg] [--version]"
+    )
 
 
 def f2(version=1): ...
