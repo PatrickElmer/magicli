@@ -63,7 +63,7 @@ def call(function, argv, module=None, name=None):
         function(*args, **kwargs)
     except Exception:
         if argv == ["--version"] and module is not None:
-            raise SystemExit(get_version(module))
+            raise SystemExit(get_version(module) or 0)
         raise SystemExit(help_message(help_from_function, function, name))
 
 
