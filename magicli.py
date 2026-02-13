@@ -31,9 +31,9 @@ def magicli():
     name = name.replace("-", "_")
 
     if function := is_command(argv, module):
-        call(function, argv[1:], name)
+        call(function, argv[1:], module, name)
     elif inspect.isfunction(function := module.__dict__.get(name)):
-        call(function, argv)
+        call(function, argv, module)
     else:
         raise SystemExit(help_message(help_from_module, module))
 
@@ -53,7 +53,7 @@ def is_command(argv, module):
     return None
 
 
-def call(function, argv, name=None):
+def call(function, argv, module=None, name=None):
     """
     Converts arguments to function parameters and calls the function.
     Displays a help message if an exception occurs.
@@ -62,6 +62,8 @@ def call(function, argv, name=None):
         args, kwargs = args_and_kwargs(argv, function)
         function(*args, **kwargs)
     except Exception:
+        if argv == ["--version"] and module is not None:
+            raise SystemExit(get_version(module))
         raise SystemExit(help_message(help_from_function, function, name))
 
 
