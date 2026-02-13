@@ -98,3 +98,35 @@ def test_short_option_with_wrong_type(mocked):
     sys.argv = ["name", "-ab"]
     with pytest.raises(SystemExit):
         magicli()
+
+
+def _create_module_with_versions(name):
+    module = type(sys)(name)
+    module.name = function_1
+    module.name.__doc__ = "--version"
+    module.command = function_2
+    module.command.__doc__ = "-v, --version"
+    module.__doc__ = "docstring"
+    module.__version__ = "1.2.3"
+    return module
+
+
+@mock.patch("importlib.import_module", side_effect=_create_module_with_versions)
+def test_version(mocked):
+    sys.argv = ["name", "--version"]
+    with pytest.raises(SystemExit) as error:
+        magicli()
+    assert error.value.code == "1.2.3"
+
+    sys.argv = ["name", "-v"]
+    with pytest.raises(SystemExit) as error:
+        magicli()
+    assert error.value.code == "-v: invalid short option"
+
+
+@mock.patch("importlib.import_module", side_effect=_create_module_with_versions)
+def test_version_with_command(mocked):
+    sys.argv = ["name", "command", "-v"]
+    with pytest.raises(SystemExit) as error:
+        magicli()
+    assert error.value.code == "1.2.3"
