@@ -112,11 +112,12 @@ def _create_module_with_versions(name):
 
 
 @mock.patch("importlib.import_module", side_effect=_create_module_with_versions)
-def test_version(mocked):
+def test_version(mocked, capsys):
     sys.argv = ["name", "--version"]
     with pytest.raises(SystemExit) as error:
         magicli()
-    assert error.value.code == "1.2.3"
+    assert error.value.code is None
+    assert capsys.readouterr()[0] == "1.2.3\n"
 
     sys.argv = ["name", "-v"]
     with pytest.raises(SystemExit) as error:
@@ -125,8 +126,9 @@ def test_version(mocked):
 
 
 @mock.patch("importlib.import_module", side_effect=_create_module_with_versions)
-def test_version_with_command(mocked):
+def test_version_with_command(mocked, capsys):
     sys.argv = ["name", "command", "-v"]
     with pytest.raises(SystemExit) as error:
         magicli()
-    assert error.value.code == "1.2.3"
+    assert error.value.code is None
+    assert capsys.readouterr()[0] == "1.2.3\n"

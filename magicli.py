@@ -66,7 +66,8 @@ def call(function, argv, module=None, name=None):
             (argv == ["--version"] and "--version" in get_docstring(function))
             or (argv == ["-v"] and "-v, --version" in get_docstring(function))
         ) and module:
-            raise SystemExit(get_version(module) or 0)
+            print(get_version(module))
+            raise SystemExit
         raise SystemExit(error.args[0])
     except Exception:
         raise SystemExit(help_message(help_from_function, function, name))
