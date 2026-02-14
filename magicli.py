@@ -7,6 +7,7 @@ line arguments based on function signatures.
 import sys
 import importlib
 import inspect
+from importlib import metadata
 from pathlib import Path
 
 
@@ -215,8 +216,8 @@ def get_version(module):
     Returns the version of a module from its metadata or `__version__` attribute.
     """
     try:
-        return importlib.metadata.version(module.__name__)
-    except importlib.metadata.PackageNotFoundError:
+        return metadata.version(module.__name__)
+    except metadata.PackageNotFoundError:
         return module.__dict__.get("__version__")
 
 
