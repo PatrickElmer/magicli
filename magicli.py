@@ -61,7 +61,7 @@ def call(function, argv, module=None, name=None):
     try:
         args, kwargs = args_and_kwargs(argv, function)
         function(*args, **kwargs)
-    except ValueError as error:
+    except MagicliError as error:
         if "version" not in inspect.signature(function).parameters and (
             (argv == ["--version"] and "--version" in get_docstring(function))
             or (argv == ["-v"] and "-v, --version" in get_docstring(function))
@@ -102,7 +102,7 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
     for short in short_options:
         long = short_to_long_option(short, docstring)
         if not long in parameters:
-            raise ValueError(f"--{long}: invalid long option")
+            raise MagicliError(f"--{long}: invalid long option")
         cast_to = get_type(parameters[long])
         if cast_to is bool:
             kwargs[long] = not parameters[long].default
@@ -111,7 +111,7 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
         elif short == short_options[-1]:
             kwargs[long] = cast_to(next(argv))
         else:
-            raise ValueError(f"-{short}: invalid type")
+            raise MagicliError(f"-{short}: invalid type")
 
 
 def short_to_long_option(short, docstring):
@@ -126,7 +126,7 @@ def short_to_long_option(short, docstring):
                 return docstring[start:i]
         if len(docstring) - start > 1:
             return docstring[start:]
-    raise ValueError(f"-{short}: invalid short option")
+    raise MagicliError(f"-{short}: invalid short option")
 
 
 def parse_kwarg(key, argv, parameters):
@@ -154,7 +154,7 @@ def get_type(parameter):
     Falls back to `str` if neither is available.
     """
     if parameter is None:
-        raise ValueError("Unknown parameter")
+        raise MagicliError("Unknown parameter")
     if parameter.annotation is not parameter.empty:
         return parameter.annotation
     if parameter.default is not parameter.empty:
@@ -236,6 +236,9 @@ def get_version(module):
     except importlib.metadata.PackageNotFoundError:
         return module.__dict__.get("__version__")
 
+
+class MagicliError(Exception):
+    pass
 
 def get_project_name():
     """
