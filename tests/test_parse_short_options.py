@@ -2,6 +2,7 @@ from inspect import _ParameterKind
 from inspect import Parameter
 from magicli import parse_short_options
 from magicli import short_to_long_option
+from magicli import MagicliError
 import pytest
 from functools import partial
 
@@ -43,7 +44,7 @@ def test_parse_short_options_failures():
         {"parameters": {}},
         {"docstring": ""},
     ]:
-        with pytest.raises(SystemExit):
+        with pytest.raises(MagicliError):
             successful_function(**kwargs)
 
 
@@ -68,5 +69,5 @@ def test_short_to_long_option(docstring):
     ],
 )
 def test_short_to_long_option_failures(docstring):
-    with pytest.raises(SystemExit):
+    with pytest.raises(MagicliError):
         short_to_long_option("a", docstring)

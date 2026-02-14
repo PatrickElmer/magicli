@@ -32,9 +32,9 @@ def magicli():
     name = name.replace("-", "_")
 
     if function := is_command(argv, module):
-        call(function, argv[1:], name)
+        call(function, argv[1:], module, name)
     elif inspect.isfunction(function := module.__dict__.get(name)):
-        call(function, argv)
+        call(function, argv, module)
     else:
         raise SystemExit(help_message(help_from_module, module))
 
@@ -54,7 +54,7 @@ def is_command(argv, module):
     return None
 
 
-def call(function, argv, name=None):
+def call(function, argv, module=None, name=None):
     """
     Converts arguments to function parameters and calls the function.
     Displays a help message if an exception occurs.
@@ -62,6 +62,14 @@ def call(function, argv, name=None):
     try:
         args, kwargs = args_and_kwargs(argv, function)
         function(*args, **kwargs)
+    except MagicliError as error:
+        if "version" not in inspect.signature(function).parameters and (
+            (argv == ["--version"] and "--version" in get_docstring(function))
+            or (argv == ["-v"] and "-v, --version" in get_docstring(function))
+        ) and module:
+            print(get_version(module))
+            raise SystemExit
+        raise SystemExit(error.args[0])
     except Exception:
         raise SystemExit(help_message(help_from_function, function, name))
 
@@ -80,7 +88,7 @@ def args_and_kwargs(argv, function):
             key, value = parse_kwarg(key[2:], argv, parameters)
             kwargs[key] = value
         elif key.startswith("_"):
-            docstring = inspect.getdoc(function) or ""
+            docstring = get_docstring(function)
             parse_short_options(key[1:], docstring, argv, parameters, kwargs)
         else:
             args.append(get_type(parameter_list[len(args)])(key))
@@ -95,7 +103,7 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
     for short in short_options:
         long = short_to_long_option(short, docstring)
         if not long in parameters:
-            raise SystemExit(f"--{long}: invalid long option")
+            raise MagicliError(f"--{long}: invalid long option")
         cast_to = get_type(parameters[long])
         if cast_to is bool:
             kwargs[long] = not parameters[long].default
@@ -104,7 +112,7 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
         elif short == short_options[-1]:
             kwargs[long] = cast_to(next(argv))
         else:
-            raise SystemExit(f"-{short}: invalid type")
+            raise MagicliError(f"-{short}: invalid type")
 
 
 def short_to_long_option(short, docstring):
@@ -119,7 +127,7 @@ def short_to_long_option(short, docstring):
                 return docstring[start:i]
         if len(docstring) - start > 1:
             return docstring[start:]
-    raise SystemExit(f"-{short}: invalid short option")
+    raise MagicliError(f"-{short}: invalid short option")
 
 
 def parse_kwarg(key, argv, parameters):
@@ -130,9 +138,9 @@ def parse_kwarg(key, argv, parameters):
     """
     if "=" in key:
         key, value = key.split("=", 1)
-        cast_to = get_type(parameters[key])
+        cast_to = get_type(parameters.get(key))
     else:
-        cast_to = get_type(parameters[key])
+        cast_to = get_type(parameters.get(key))
         if cast_to is bool:
             return key, not parameters[key].default
         elif cast_to is type(None):
@@ -146,6 +154,8 @@ def get_type(parameter):
     Determines the type based on function signature annotations or defaults.
     Falls back to `str` if neither is available.
     """
+    if parameter is None:
+        raise MagicliError("Unknown parameter")
     if parameter.annotation is not parameter.empty:
         return parameter.annotation
     if parameter.default is not parameter.empty:
@@ -211,6 +221,13 @@ def get_commands(module):
     ]
 
 
+def get_docstring(function):
+    """
+    Returns the cleaned up docstring of a function or an empty string.
+    """
+    return inspect.getdoc(function) or ""
+
+
 def get_version(module):
     """
     Returns the version of a module from its metadata or `__version__` attribute.
@@ -220,6 +237,9 @@ def get_version(module):
     except metadata.PackageNotFoundError:
         return module.__dict__.get("__version__")
 
+
+class MagicliError(Exception):
+    pass
 
 def get_project_name():
     """
