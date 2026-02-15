@@ -154,15 +154,18 @@ def get_type(parameter):
     return str
 
 
-
 def check_for_version(argv, parameters, docstring, module):
     """
     Displays version information if --version is specified in the docstring.
     """
-    if "version" not in parameters and (
-        (argv == ["--version"] and "--version" in docstring)
-        or (argv == ["-v"] and "-v, --version" in docstring)
-    ) and module:
+    if (
+        "version" not in parameters
+        and (
+            (argv == ["--version"] and "--version" in docstring)
+            or (argv == ["-v"] and "-v, --version" in docstring)
+        )
+        and module
+    ):
         print(get_version(module))
         raise SystemExit
 
