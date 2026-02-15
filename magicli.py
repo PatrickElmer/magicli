@@ -115,11 +115,12 @@ def short_to_long_option(short, docstring):
     template = f"-{short}, --"
     if (start := docstring.find(template)) != -1:
         start += len(template)
-        for i, char in enumerate(docstring[start:], start):
-            if char in {" ", "\n"}:
-                return docstring[start:i]
-        if len(docstring) - start > 1:
-            return docstring[start:]
+        try:
+            end = min(found for char in [" ", "\n"] if (found := docstring.find(char, start))       
+            return docstring[start:end]
+        except ValueError:
+            if len(docstring) - start > 1:
+                return docstring[start:]
     raise SystemExit(f"-{short}: invalid short option")
 
 
