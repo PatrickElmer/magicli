@@ -60,25 +60,19 @@ def call(function, argv, module=None, name=None):
     Displays a help message if an exception occurs.
     """
     try:
-        args, kwargs = args_and_kwargs(argv, function)
+        docstring = get_docstring(function)
+        parameters = inspect.signature(function).parameters
+        check_for_version(argv, parameters, docstring, module)
+        args, kwargs = args_and_kwargs(argv, parameters, docstring)
         function(*args, **kwargs)
-    except MagicliError as error:
-        if "version" not in inspect.signature(function).parameters and (
-            (argv == ["--version"] and "--version" in get_docstring(function))
-            or (argv == ["-v"] and "-v, --version" in get_docstring(function))
-        ) and module:
-            print(get_version(module))
-            raise SystemExit
-        raise SystemExit(error.args[0])
     except Exception:
         raise SystemExit(help_message(help_from_function, function, name))
 
 
-def args_and_kwargs(argv, function):
+def args_and_kwargs(argv, parameters, docstring):
     """
     Parses command-line arguments into positional and keyword arguments.
     """
-    parameters = inspect.signature(function).parameters
     parameter_list = list(parameters.values())
     args, kwargs = [], {}
 
@@ -88,7 +82,6 @@ def args_and_kwargs(argv, function):
             key, value = parse_kwarg(key[2:], argv, parameters)
             kwargs[key] = value
         elif key.startswith("_"):
-            docstring = get_docstring(function)
             parse_short_options(key[1:], docstring, argv, parameters, kwargs)
         else:
             args.append(get_type(parameter_list[len(args)])(key))
@@ -103,7 +96,7 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
     for short in short_options:
         long = short_to_long_option(short, docstring)
         if not long in parameters:
-            raise MagicliError(f"--{long}: invalid long option")
+            raise SystemExit(f"--{long}: invalid long option")
         cast_to = get_type(parameters[long])
         if cast_to is bool:
             kwargs[long] = not parameters[long].default
@@ -112,7 +105,7 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
         elif short == short_options[-1]:
             kwargs[long] = cast_to(next(argv))
         else:
-            raise MagicliError(f"-{short}: invalid type")
+            raise SystemExit(f"-{short}: invalid type")
 
 
 def short_to_long_option(short, docstring):
@@ -127,7 +120,7 @@ def short_to_long_option(short, docstring):
                 return docstring[start:i]
         if len(docstring) - start > 1:
             return docstring[start:]
-    raise MagicliError(f"-{short}: invalid short option")
+    raise SystemExit(f"-{short}: invalid short option")
 
 
 def parse_kwarg(key, argv, parameters):
@@ -154,13 +147,27 @@ def get_type(parameter):
     Determines the type based on function signature annotations or defaults.
     Falls back to `str` if neither is available.
     """
-    if parameter is None:
-        raise MagicliError("Unknown parameter")
     if parameter.annotation is not parameter.empty:
         return parameter.annotation
     if parameter.default is not parameter.empty:
         return type(parameter.default)
     return str
+
+
+def check_for_version(argv, parameters, docstring, module):
+    """
+    Displays version information if --version is specified in the docstring.
+    """
+    if (
+        "version" not in parameters
+        and any(
+            (argv == [arg] and string in docstring)
+            for arg, string in [("--version", "--version"), ("-v", "-v, --version")]
+        )
+        and module
+    ):
+        print(get_version(module))
+        raise SystemExit
 
 
 def help_message(help_function, obj, *args):
@@ -237,9 +244,6 @@ def get_version(module):
     except metadata.PackageNotFoundError:
         return module.__dict__.get("__version__")
 
-
-class MagicliError(Exception):
-    pass
 
 def get_project_name():
     """

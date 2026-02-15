@@ -4,6 +4,7 @@ from magicli import parse_kwarg
 from magicli import get_type
 from magicli import args_and_kwargs
 import pytest
+import inspect
 
 
 PK = _ParameterKind.POSITIONAL_OR_KEYWORD
@@ -36,11 +37,12 @@ def test_get_type():
 
 
 def test_args_and_kwargs():
-    assert args_and_kwargs(["a", "--kwarg=2"], lambda arg, kwarg=1: None) == (
+    parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
+    assert args_and_kwargs(["a", "--kwarg=2"], parameters, docstring="") == (
         ["a"],
         {"kwarg": 2},
     )
-    assert args_and_kwargs(["a", "--kwarg", "2"], lambda arg, kwarg=1: None) == (
+    assert args_and_kwargs(["a", "--kwarg", "2"], parameters, docstring="") == (
         ["a"],
         {"kwarg": 2},
     )
