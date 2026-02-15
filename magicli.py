@@ -292,5 +292,8 @@ dependencies = ["magicli<3"]
 """
     )
 
-    return """pyproject.toml created.
-Set the version either through `git tag` or `__version__`."""
+    print(
+        "pyproject.toml created! ✨",
+        "Set the version either through `git tag` or `__version__`.",
+        sep="\n",
+    )
