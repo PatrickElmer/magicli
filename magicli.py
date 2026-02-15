@@ -116,7 +116,7 @@ def short_to_long_option(short, docstring):
     if (start := docstring.find(template)) != -1:
         start += len(template)
         try:
-            end = min(found for char in [" ", "\n"] if (found := docstring.find(char, start))       
+            end = min(found for char in [" ", "\n"] if (found := docstring.find(char, start)))     
             return docstring[start:end]
         except ValueError:
             if len(docstring) - start > 1:
