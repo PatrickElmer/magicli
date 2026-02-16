@@ -114,9 +114,7 @@ def short_to_long_option(short, docstring):
     """
     if (start := docstring.find(f"-{short}, --") + 6) > 5:
         try:
-            end = min(
-                end for ws in (" ", "\n") if (end := docstring.find(ws, start)) != -1
-            )
+            end = min(i for ws in (" ", "\n") if (i := docstring.find(ws, start)) != -1)
             return docstring[start:end]
         except ValueError:
             if len(docstring) - start > 1:
