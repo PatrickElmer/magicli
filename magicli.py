@@ -112,14 +112,13 @@ def short_to_long_option(short, docstring):
     """
     Converts a one character short option to a long option accoring to the help message.
     """
-    template = f"-{short}, --"
-    if (start := docstring.find(template)) != -1:
-        start += len(template)
-        for i, char in enumerate(docstring[start:], start):
-            if char in {" ", "\n"}:
-                return docstring[start:i]
-        if len(docstring) - start > 1:
-            return docstring[start:]
+    if (start := docstring.find(f"-{short}, --") + 6) > 5:
+        try:
+            end = min(i for ws in (" ", "\n") if (i := docstring.find(ws, start)) != -1)
+            return docstring[start:end]
+        except ValueError:
+            if len(docstring) - start > 1:
+                return docstring[start:]
     raise SystemExit(f"-{short}: invalid short option")
 
 
