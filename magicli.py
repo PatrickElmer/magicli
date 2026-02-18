@@ -249,9 +249,7 @@ def get_project_name():
     Detect project name from project structure.
     """
     flat_layout = [path.stem for path in Path().glob("*.py")]
-    src_layout = [
-        path for path in Path().iterdir() if (Path(path) / "__init__.py").exists()
-    ]
+    src_layout = [path.parent.name for path in Path().glob("*/__init__.py")]
 
     if len(names := flat_layout + src_layout) == 1:
         return names[0]
