@@ -73,11 +73,10 @@ def args_and_kwargs(argv, parameters, docstring):
     args, kwargs = [], {}
 
     for key in (iter_argv := iter(argv)):
-        key = key.replace("-", "_")
-        if key.startswith("__"):
+        if key.startswith("--"):
             key, value = parse_kwarg(key[2:], iter_argv, parameters)
             kwargs[key] = value
-        elif key.startswith("_"):
+        elif key.startswith("-"):
             parse_short_options(key[1:], docstring, iter_argv, parameters, kwargs)
         else:
             args.append(get_type(parameter_list[len(args)])(key))
@@ -127,8 +126,10 @@ def parse_kwarg(key, argv, parameters):
     """
     if "=" in key:
         key, value = key.split("=", 1)
+        key = key.replace("-", "_")
         cast_to = get_type(parameters.get(key))
     else:
+        key = key.replace("-", "_")
         cast_to = get_type(parameters.get(key))
         if cast_to is bool:
             return key, not parameters[key].default
