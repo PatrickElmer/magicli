@@ -20,7 +20,7 @@ def test_parse_short_options(default, result):
     parse_short_options(
         short_options="a",
         docstring="-a, --aa",
-        argv=iter(["b"]),
+        iter_argv=iter(["b"]),
         parameters={
             "aa": Parameter("aa", _ParameterKind.KEYWORD_ONLY, default=default)
         },
@@ -30,21 +30,21 @@ def test_parse_short_options(default, result):
 
 
 def test_parse_short_options_failures():
-    successful_function = partial(
-        parse_short_options,
-        short_options="a",
-        docstring="-a, --aa",
-        argv=iter(["b"]),
-        parameters={"aa": Parameter("aa", _ParameterKind.KEYWORD_ONLY)},
-        kwargs={},
-    )
-    successful_function()
-    for kwargs in [
+    _kwargs = {
+        "short_options": "a",
+        "docstring": "-a, --abc",
+        "iter_argv": iter(["b"]),
+        "parameters": {"abc": Parameter("abc", _ParameterKind.KEYWORD_ONLY)},
+        "kwargs": {},
+    }
+    for args in [
         {"parameters": {}},
         {"docstring": ""},
+        {"short_options": "aa", "iter_argv": iter(["aa"])}
     ]:
         with pytest.raises(SystemExit):
-            successful_function(**kwargs)
+            parse_short_options(**(_kwargs | args))
+        _kwargs["kwargs"] = {}
 
 
 @pytest.mark.parametrize(
@@ -53,6 +53,7 @@ def test_parse_short_options_failures():
         "-a, --ab c",
         "-a, --ab\n",
         "-a, --ab",
+        "[-a, --ab]",
     ],
 )
 def test_short_to_long_option(docstring):
