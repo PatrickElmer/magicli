@@ -40,7 +40,7 @@ def test_parse_short_options_failures():
     for args in [
         {"parameters": {}},
         {"docstring": ""},
-        {"short_options": "aa", "iter_argv": iter(["aa"])}
+        {"short_options": "aa", "iter_argv": iter(["aa"])},
     ]:
         with pytest.raises(SystemExit):
             parse_short_options(**(_kwargs | args))
