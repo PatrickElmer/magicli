@@ -76,24 +76,24 @@ def args_and_kwargs(argv, parameters, docstring):
     parameter_list = list(parameters.values())
     args, kwargs = [], {}
 
-    for key in (argv := iter(argv)):
+    for key in (iter_argv := iter(argv)):
         key = key.replace("-", "_")
         if key.startswith("__"):
-            key, value = parse_kwarg(key[2:], argv, parameters)
+            key, value = parse_kwarg(key[2:], iter_argv, parameters)
             kwargs[key] = value
         elif key.startswith("_"):
-            parse_short_options(key[1:], docstring, argv, parameters, kwargs)
+            parse_short_options(key[1:], docstring, iter_argv, parameters, kwargs)
         else:
             args.append(get_type(parameter_list[len(args)])(key))
 
     return args, kwargs
 
 
-def parse_short_options(short_options, docstring, argv, parameters, kwargs):
+def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs):
     """
     Converts short options into long options and casts into correct types.
     """
-    for short in short_options:
+    for i, short in enumerate(short_options):
         long = short_to_long_option(short, docstring)
         if not long in parameters:
             raise SystemExit(f"--{long}: invalid long option")
@@ -102,8 +102,8 @@ def parse_short_options(short_options, docstring, argv, parameters, kwargs):
             kwargs[long] = not parameters[long].default
         elif cast_to is type(None):
             kwargs[long] = True
-        elif short == short_options[-1]:
-            kwargs[long] = cast_to(next(argv))
+        elif i == len(short_options) - 1:
+            kwargs[long] = cast_to(next(iter_argv))
         else:
             raise SystemExit(f"-{short}: invalid type")
 
@@ -113,8 +113,9 @@ def short_to_long_option(short, docstring):
     Converts a one character short option to a long option accoring to the help message.
     """
     if (start := docstring.find(f"-{short}, --") + 6) > 5:
+        chars = (" ", "\n", "]")
         try:
-            end = min(i for ws in (" ", "\n") if (i := docstring.find(ws, start)) != -1)
+            end = min(i for ws in chars if (i := docstring.find(ws, start)) != -1)
             return docstring[start:end]
         except ValueError:
             if len(docstring) - start > 1:
