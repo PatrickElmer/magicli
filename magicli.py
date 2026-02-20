@@ -124,7 +124,6 @@ def parse_kwarg(key, argv, parameters):
     Handles '=' syntax for inline values. Casts `NoneType` values to `True`
     and boolean values to `not default`.
     """
-
     key, value = key.split("=", 1) if "=" in key else (key, None)
     key = key.replace("-", "_")
     cast_to = get_type(parameters.get(key))
