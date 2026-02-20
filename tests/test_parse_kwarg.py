@@ -46,3 +46,15 @@ def test_args_and_kwargs():
         ["a"],
         {"kwarg": 2},
     )
+
+
+def test_args_and_kwargs_with_underscore():
+    parameters = inspect.signature(lambda arg, kwarg_1=1: None).parameters
+    assert args_and_kwargs(["a", "--kwarg-1=2"], parameters, docstring="") == (
+        ["a"],
+        {"kwarg_1": 2},
+    )
+    assert args_and_kwargs(["a", "--kwarg-1", "2"], parameters, docstring="") == (
+        ["a"],
+        {"kwarg_1": 2},
+    )
