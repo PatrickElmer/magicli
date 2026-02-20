@@ -24,11 +24,7 @@ def magicli():
     if name == "magicli":
         raise SystemExit(call(cli, argv))
 
-    try:
-        module = importlib.import_module(name)
-    except ModuleNotFoundError:
-        raise SystemExit(f"{name}: command not found")
-
+    module = load_module(name)
     name = name.replace("-", "_")
 
     if function := is_command(argv, module):
@@ -217,6 +213,14 @@ def help_from_module(module):
 def format_message(blocks):
     """Formats blocks of text with proper indentation."""
     return "\n\n".join("\n  ".join(block) for block in blocks)
+
+
+def load_module(name):
+    """Load module from name"""
+    try:
+        return importlib.import_module(name)
+    except ModuleNotFoundError:
+        raise SystemExit(f"{name}: command not found")
 
 
 def get_commands(module):
