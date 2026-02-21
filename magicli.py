@@ -90,9 +90,12 @@ def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs)
     """
     for i, short in enumerate(short_options):
         long = short_to_long_option(short, docstring)
+
         if long not in parameters:
             raise SystemExit(f"--{long}: invalid long option")
+
         cast_to = get_type(parameters[long])
+
         if cast_to is bool:
             kwargs[long] = not parameters[long].default
         elif cast_to is type(None):
