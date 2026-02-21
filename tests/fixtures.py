@@ -8,21 +8,19 @@ import pytest
 @pytest.fixture()
 def setup():
     cwd = Path.cwd()
-    path = Path("tests") / "tmp"
+    path = Path("tests", "tmp")
 
     # Make sure the directory does not exist
     if path.exists():
         shutil.rmtree(path)
 
     path.mkdir(exist_ok=True)
-    (path / "module.py").touch()
-
+    Path(path, "module.py").touch()
     os.chdir(path)
 
     yield path
 
     os.chdir(cwd)
-
     shutil.rmtree(path)
 
 
@@ -44,3 +42,13 @@ def pyproject_toml():
     yield file
 
     file.unlink()
+
+
+@pytest.fixture()
+def dotgit():
+    dir = Path(".git")
+    dir.mkdir(exist_ok=True)
+
+    yield dir
+
+    shutil.rmtree(dir)
