@@ -76,8 +76,8 @@ def args_and_kwargs(argv, parameters, docstring):
 
     for key in (iter_argv := iter(argv)):
         if key.startswith("--"):
-            key, value = parse_kwarg(key[2:], iter_argv, parameters)
-            kwargs[key] = value
+            left, right = parse_kwarg(key[2:], iter_argv, parameters)
+            kwargs[left] = right
         elif key.startswith("-"):
             parse_short_options(key[1:], docstring, iter_argv, parameters, kwargs)
         else:
@@ -112,7 +112,9 @@ def short_to_long_option(short, docstring):
     """
     Converts a one character short option to a long option accoring to the help message.
     """
-    if (start := docstring.find(f"-{short}, --") + 6) > 5:
+    template = f"-{short}, --"
+    if (start := docstring.find(template)) != -1:
+        start += len(template)
         chars = (" ", "\n", "]")
 
         try:
@@ -213,7 +215,7 @@ def help_from_module(module):
     message.append(["usage:", f"{module.__name__} command"])
 
     if commands := get_commands(module):
-        message.append(["commands:"] + commands)
+        message.append(["commands:", *commands])
 
     return format_message(message)
 
@@ -302,8 +304,11 @@ dependencies = ["magicli<3"]
 """
     )
 
-    print(
-        "pyproject.toml created! ✨",
-        "Set the version either through `git tag` or `__version__`.",
-        sep="\n",
-    )
+    message = ["pyproject.toml created! ✨"]
+    if Path(".git").exists():
+        message.append("You can specify the version with `git tag`")
+    else:
+        message.append(
+            "Error: Not a git repo. Run `git init`. Specify version with `git tag`."
+        )
+    print(*message, sep="\n")

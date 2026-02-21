@@ -2,7 +2,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-from fixtures import pyproject_toml, setup, two_py
+from fixtures import pyproject_toml, setup, two_py, dotgit
 
 from magicli import cli, get_project_name
 
@@ -36,3 +36,27 @@ def test_empty_cli_name_failure(setup, two_py):
     with pytest.raises(SystemExit) as error:
         get_project_name()
     assert error.value.code == 1
+
+
+def test_on_git_repo(capsys, setup):
+    cli()
+    out, _ = capsys.readouterr()
+
+    with_git = (
+        "Error: Not a git repo. Run `git init`. Specify version with `git tag`.\n"
+    )
+    without_git = "You can specify the version with `git tag`\n"
+    assert out.endswith(with_git)
+    assert without_git not in out
+
+
+def test_git_repo(capsys, setup, dotgit):
+    cli()
+    out, _ = capsys.readouterr()
+
+    with_git = (
+        "Error: Not a git repo. Run `git init`. Specify version with `git tag`.\n"
+    )
+    without_git = "You can specify the version with `git tag`\n"
+    assert out.endswith(without_git)
+    assert with_git not in out
