@@ -58,7 +58,9 @@ def call(function, argv, module=None, name=None):
     try:
         docstring = get_docstring(function)
         parameters = inspect.signature(function).parameters
+
         check_for_version(argv, parameters, docstring, module)
+
         args, kwargs = args_and_kwargs(argv, parameters, docstring)
         function(*args, **kwargs)
     except Exception:
@@ -112,12 +114,15 @@ def short_to_long_option(short, docstring):
     """
     if (start := docstring.find(f"-{short}, --") + 6) > 5:
         chars = (" ", "\n", "]")
+
         try:
             end = min(i for ws in chars if (i := docstring.find(ws, start)) != -1)
             return docstring[start:end]
+
         except ValueError:
             if len(docstring) - start > 1:
                 return docstring[start:]
+
     raise SystemExit(f"-{short}: invalid short option")
 
 
@@ -130,12 +135,14 @@ def parse_kwarg(key, argv, parameters):
     key, value = key.split("=", 1) if "=" in key else (key, None)
     key = key.replace("-", "_")
     cast_to = get_type(parameters.get(key))
+
     if value is None:
         if cast_to is bool:
             return key, not parameters[key].default
         if cast_to is type(None):
             return key, True
         value = next(argv)
+
     return key, value if cast_to is str else cast_to(value)
 
 
