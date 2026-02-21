@@ -292,8 +292,8 @@ dependencies = ["magicli<3"]
 """
     )
 
-    print(
-        "pyproject.toml created! ✨",
-        "Set the version either through `git tag` or `__version__`.",
-        sep="\n",
-    )
+    message = ["pyproject.toml created! ✨"]
+    if not Path(".git").exists():
+        message.append("Error: Not a git repo. Run `git init`")
+    message.append("Set the version either through `git tag` or `__version__`.")
+    print(*message, sep="\n")
