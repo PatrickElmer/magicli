@@ -90,7 +90,7 @@ def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs)
     """
     for i, short in enumerate(short_options):
         long = short_to_long_option(short, docstring)
-        if not long in parameters:
+        if long not in parameters:
             raise SystemExit(f"--{long}: invalid long option")
         cast_to = get_type(parameters[long])
         if cast_to is bool:
@@ -130,7 +130,7 @@ def parse_kwarg(key, argv, parameters):
     if value is None:
         if cast_to is bool:
             return key, not parameters[key].default
-        elif cast_to is type(None):
+        if cast_to is type(None):
             return key, True
         value = next(argv)
     return key, value if cast_to is str else cast_to(value)
