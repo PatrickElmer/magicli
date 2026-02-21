@@ -1,11 +1,6 @@
 name: Lint
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - magicli.py
   pull_request:
     paths:
       - magicli.py
