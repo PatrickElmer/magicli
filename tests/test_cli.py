@@ -1,8 +1,10 @@
-import pytest
 from pathlib import Path
 from unittest import mock
+
+import pytest
+from fixtures import pyproject_toml, setup, two_py
+
 from magicli import cli, get_project_name
-from fixtures import setup, two_py, pyproject_toml
 
 
 @mock.patch("builtins.input", lambda _: "two")

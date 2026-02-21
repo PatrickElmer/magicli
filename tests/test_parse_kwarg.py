@@ -1,11 +1,9 @@
-from inspect import _ParameterKind
-from inspect import Parameter
-from magicli import parse_kwarg
-from magicli import get_type
-from magicli import args_and_kwargs
-import pytest
 import inspect
+from inspect import Parameter, _ParameterKind
 
+import pytest
+
+from magicli import args_and_kwargs, get_type, parse_kwarg
 
 PK = _ParameterKind.POSITIONAL_OR_KEYWORD
 

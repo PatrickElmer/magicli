@@ -1,6 +1,6 @@
-from magicli import help_from_function
-from magicli import help_from_module
 import sys
+
+from magicli import help_from_function, help_from_module
 
 
 def f1(arg, kwarg=1): ...

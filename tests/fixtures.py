@@ -1,7 +1,8 @@
-import pytest
-from pathlib import Path
-import shutil
 import os
+import shutil
+from pathlib import Path
+
+import pytest
 
 
 @pytest.fixture()

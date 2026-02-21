@@ -4,9 +4,9 @@ by introspecting its functions and automatically parsing command-
 line arguments based on function signatures.
 """
 
-import sys
 import importlib
 import inspect
+import sys
 from importlib import metadata
 from pathlib import Path
 

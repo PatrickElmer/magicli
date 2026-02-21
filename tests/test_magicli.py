@@ -1,8 +1,9 @@
 import sys
 from unittest import mock
-from magicli import magicli
+
 import pytest
 
+from magicli import magicli
 
 ANSWER = None
 

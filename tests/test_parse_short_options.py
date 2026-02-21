@@ -1,9 +1,9 @@
-from inspect import _ParameterKind
-from inspect import Parameter
-from magicli import parse_short_options
-from magicli import short_to_long_option
-import pytest
 from functools import partial
+from inspect import Parameter, _ParameterKind
+
+import pytest
+
+from magicli import parse_short_options, short_to_long_option
 
 
 @pytest.mark.parametrize(
