@@ -1,0 +1,73 @@
+from functools import partial
+from inspect import Parameter, _ParameterKind
+
+import pytest
+
+from magicli import parse_short_options, short_to_long_option
+
+
+@pytest.mark.parametrize(
+    ["default", "result"],
+    [
+        (None, True),
+        (True, False),
+        (False, True),
+        ("", "b"),
+    ],
+)
+def test_parse_short_options(default, result):
+    kwargs = {}
+    parse_short_options(
+        short_options="a",
+        docstring="-a, --aa",
+        iter_argv=iter(["b"]),
+        parameters={
+            "aa": Parameter("aa", _ParameterKind.KEYWORD_ONLY, default=default)
+        },
+        kwargs=kwargs,
+    )
+    assert kwargs == {"aa": result}
+
+
+def test_parse_short_options_failures():
+    _kwargs = {
+        "short_options": "a",
+        "docstring": "-a, --abc",
+        "iter_argv": iter(["b"]),
+        "parameters": {"abc": Parameter("abc", _ParameterKind.KEYWORD_ONLY)},
+        "kwargs": {},
+    }
+    for args in [
+        {"parameters": {}},
+        {"docstring": ""},
+        {"short_options": "aa", "iter_argv": iter(["aa"])},
+    ]:
+        with pytest.raises(SystemExit):
+            parse_short_options(**(_kwargs | args))
+        _kwargs["kwargs"] = {}
+
+
+@pytest.mark.parametrize(
+    "docstring",
+    [
+        "-a, --ab c",
+        "-a, --ab\n",
+        "-a, --ab",
+        "[-a, --ab]",
+    ],
+)
+def test_short_to_long_option(docstring):
+    assert short_to_long_option("a", docstring) == "ab"
+
+
+@pytest.mark.parametrize(
+    "docstring",
+    [
+        "",
+        "-a, --",
+        "-a, --a",
+    ],
+)
+def test_short_to_long_option_failures(docstring):
+    with pytest.raises(SystemExit):
+        short_to_long_option("a", docstring)

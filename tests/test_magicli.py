@@ -1,85 +1,122 @@
-import inspect
+import sys
+from unittest import mock
+from functools import partial
+
 import pytest
 
 from magicli import magicli
 
-
-frame_globals = inspect.currentframe().f_globals
-__version__ = "0.0.0"
+ANSWER = None
 
 
-def foo():
-    """foo help"""
-    print(foo.__name__ * 2)
+def name():
+    "--version"
+    global ANSWER
+    ANSWER = 1
 
 
-def bar():
-    """bar help"""
-    print(bar.__name__ * 2)
+def command():
+    "-v, --version"
+    global ANSWER
+    ANSWER = 2
 
 
-def baz(arg): ...
+def create_module(name, version=None, functions=None):
+    module = type(sys)(name)
+    module.__doc__ = "docstring"
+    module.__version__ = version
+    for function in functions or []:
+        setattr(module, function.__name__, function)
+    return module
 
 
-def custom_version(version=False):
-    """None"""
-    print("Version:", __version__)
+module = partial(create_module, functions=[name, command])
+module_version = partial(module, version="1.2.3")
+module_empty = partial(create_module, functions=None)
 
 
-def custom_help(help=False):
-    """None"""
-    if help:
-        print("Help: " + custom_help.__name__)
+@mock.patch("importlib.import_module", side_effect=module)
+def test_module_imported(mocked):
+    sys.argv = ["name"]
+    magicli()
+    mocked.assert_called_once_with("name")
 
 
-def generated_help_message(arg, kwarg="default"):
-    """Help message for generated_help_message."""
-    ...
+@mock.patch("importlib.import_module", side_effect=module)
+def test_first_function_called(mocked):
+    sys.argv = ["name"]
+    magicli()
+    mocked.assert_called_once_with("name")
+    assert ANSWER == 1
 
 
-def hello(name="world"):
-    print("hello", name)
+@mock.patch("importlib.import_module", side_effect=module)
+def test_command_called(mocked):
+    sys.argv = ["name", "command"]
+    magicli()
+    mocked.assert_called_once_with("name")
+    assert ANSWER == 2
 
 
-def _cli(prompt, capsys=None):
-    magicli(frame_globals=frame_globals, argv=prompt.split())
-    return capsys.readouterr().out.rstrip()
-
-
-@pytest.mark.parametrize(
-    "prompt, output",
-    [
-        ("foo", foo.__name__ * 2),
-        ("foo --help", foo.__doc__),
-        ("foo bar", bar.__name__ * 2),
-        ("foo bar --help", bar.__doc__),
-        ("foo custom-version --version", "Version: " + __version__),
-        ("foo custom-help --help", "Help: " + custom_help.__name__),
-    ],
-)
-def test_success(prompt, output, capsys):
-    assert output == _cli(prompt, capsys)
-
-
-@pytest.mark.parametrize(
-    "prompt, output",
-    [
-        ("foo foofoo", "foo help"),
-        ("foo x", "foo help"),
-        ("foo baz", ""),
-        ("foo generated-help-message", generated_help_message.__doc__),
-    ],
-)
-def test_failure(prompt, output, capsys):
+@mock.patch("importlib.import_module", side_effect=module)
+def test_wrong_command_not_called(mocked):
+    sys.argv = ["name", "wrong_command"]
     with pytest.raises(SystemExit):
-        output == _cli(prompt, capsys)
+        magicli()
 
 
-def test_fail_on_arg_as_kwarg(capsys):
-    assert _cli("say hello", capsys) == "hello world"
+def test_empty_sys_argv():
+    sys.argv = []
     with pytest.raises(SystemExit):
-        _cli("say hello magicli", capsys)
+        magicli()
 
 
-def test_show_version(capsys):
-    assert _cli("foo --version", capsys) == __version__
+@mock.patch("importlib.import_module", side_effect=module_empty)
+def test_module_without_functions(mocked):
+    sys.argv = ["name"]
+    with pytest.raises(SystemExit):
+        magicli()
+
+
+def test_module_not_found():
+    sys.argv = ["_"]
+    with pytest.raises(SystemExit):
+        magicli()
+
+
+@mock.patch("builtins.input", lambda *args: "n")
+def test_module_is_magicli():
+    sys.argv = ["magicli"]
+    with pytest.raises(SystemExit) as error:
+        magicli()
+    assert error.value.code == 1
+
+
+@mock.patch("importlib.import_module", side_effect=module)
+def test_short_option_with_wrong_type(mocked):
+    sys.argv = ["name", "-ab"]
+    with pytest.raises(SystemExit):
+        magicli()
+
+
+@mock.patch("importlib.import_module", side_effect=module_version)
+def test_version(mocked, capsys):
+    sys.argv = ["name", "--version"]
+    with pytest.raises(SystemExit) as error:
+        magicli()
+    assert error.value.code is None
+    assert capsys.readouterr()[0] == "1.2.3\n"
+
+    sys.argv = ["name", "-v"]
+    with pytest.raises(SystemExit) as error:
+        magicli()
+    assert error.value.code == "-v: invalid short option"
+
+
+@mock.patch("importlib.import_module", side_effect=module_version)
+def test_version_with_command(mocked, capsys):
+    sys.argv = ["name", "command", "-v"]
+    with pytest.raises(SystemExit) as error:
+        magicli()
+    assert error.value.code is None
+    assert capsys.readouterr()[0] == "1.2.3\n"

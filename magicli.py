@@ -1,203 +1,314 @@
+"""
+Magicli generates command-line interfaces from Python modules
+by introspecting its functions and automatically parsing command-
+line arguments based on function signatures.
+"""
+
+import importlib
 import inspect
 import sys
 from importlib import metadata
+from pathlib import Path
 
-try:
-    __version__ = metadata.version("magicli")
-except metadata.PackageNotFoundError:
-    pass
 
-def magicli(
-    frame_globals=inspect.currentframe().f_back.f_globals,
-    argv=sys.argv,
-    help_message=lambda function: inspect.getdoc(function),
-    version_message=lambda frame_globals: frame_globals.get("__version__"),
-):
-    """Calls a function according to the arguments specified in the argv."""
+def magicli():
+    """
+    Parses command-line arguments and calls the appropriate function.
+    """
+    if not sys.argv:
+        raise SystemExit(1)
 
-    function, argv = get_function_to_call(argv, frame_globals)
+    name = Path(sys.argv[0]).name
+    argv = sys.argv[1:]
 
+    if name == "magicli":
+        raise SystemExit(call(cli, argv))
+
+    module = load_module(name)
+    name = name.replace("-", "_")
+
+    if function := is_command(argv, module):
+        call(function, argv[1:], module, name)
+    elif inspect.isfunction(function := module.__dict__.get(name)):
+        call(function, argv, module)
+    else:
+        raise SystemExit(help_message(help_from_module, module))
+
+
+def is_command(argv, module):
+    """
+    Checks if the first argument is a valid command in the module and returns
+    the function to call if `argv[0]` is public and not excluded in `__all__`,
+    """
+    if (
+        argv
+        and not (command := argv[0].replace("-", "_")).startswith("_")
+        and command in module.__dict__.get("__all__", [command])
+        and inspect.isfunction(function := module.__dict__.get(command))
+    ):
+        return function
+    return None
+
+
+def call(function, argv, module=None, name=None):
+    """
+    Converts arguments to function parameters and calls the function.
+    Displays a help message if an exception occurs.
+    """
     try:
-        kwargs = get_kwargs(argv, function, help_message)
-    except (IndexError, KeyError):
-        handle_error(frame_globals, argv, help_message, version_message, function)
-    else:
-        function(**kwargs)
+        docstring = get_docstring(function)
+        parameters = inspect.signature(function).parameters
+
+        check_for_version(argv, parameters, docstring, module)
+
+        args, kwargs = args_and_kwargs(argv, parameters, docstring)
+        function(*args, **kwargs)
+    except Exception:
+        raise SystemExit(help_message(help_from_function, function, name))
 
 
-def handle_error(frame_globals, argv, help_message, version_message, function):
-    if "--version" in argv and (version := version_message(frame_globals)):
-        print(version)
-    elif "--help" in argv and (help := help_message(function)):
-        print(help)
-    else:
-        raise SystemExit(help_message(function))
-
-
-def get_function_to_call(argv, frame_globals):
+def args_and_kwargs(argv, parameters, docstring):
     """
-    Returns the function to be called based on command line arguments
-    and the command line arguments to be fed into the function.
+    Parses command-line arguments into positional and keyword arguments.
     """
+    parameter_list = list(parameters.values())
+    args, kwargs = [], {}
 
-    if not argv:
-        raise ValueError
+    for key in (iter_argv := iter(argv)):
+        if key.startswith("--"):
+            left, right = parse_kwarg(key[2:], iter_argv, parameters)
+            kwargs[left] = right
+        elif key.startswith("-"):
+            parse_short_options(key[1:], docstring, iter_argv, parameters, kwargs)
+        else:
+            args.append(get_type(parameter_list[len(args)])(key))
 
-    _all = frame_globals.get("__all__")
-
-    def get_function(function_name):
-        if inspect.isfunction(function := frame_globals.get(function_name)) and function.__module__ == frame_globals["__name__"]:
-            return function
-
-    def is_valid_function(arg):
-        function_name = arg.replace("-", "_")
-        if _all and function_name in _all or not function_name.startswith("_"):
-            return get_function(function_name)
-
-    # Try argv number 2
-    if len(argv) > 1 and argv[0] != argv[1]:
-        if function := is_valid_function(argv[1]):
-            return function, argv[2:]
-
-    # Try argv number 1
-    if function := is_valid_function(argv[0]):
-        return function, argv[1:]
-
-    # Use first function in __all__
-    if _all:
-        for function_name in _all:
-            if function := is_valid_function(function_name):
-                return function, argv[1:]
-
-    # Use first function in module
-    return first_function(frame_globals), argv[1:]
+    return args, kwargs
 
 
-def first_function(frame_globals):
-    """Returns the first non-private function of the current module."""
+def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs):
+    """
+    Converts short options into long options and casts into correct types.
+    """
+    for i, short in enumerate(short_options):
+        long = short_to_long_option(short, docstring)
 
-    for function in frame_globals.values():
-        if (
-            inspect.isfunction(function)
-            and not function.__name__.startswith("_")
-            and function.__module__ == frame_globals["__name__"]
-        ):
-            return function
+        if long not in parameters:
+            raise SystemExit(f"--{long}: invalid long option")
+
+        cast_to = get_type(parameters[long])
+
+        if cast_to is bool:
+            kwargs[long] = not parameters[long].default
+        elif cast_to is type(None):
+            kwargs[long] = True
+        elif i == len(short_options) - 1:
+            kwargs[long] = cast_to(next(iter_argv))
+        else:
+            raise SystemExit(f"-{short}: invalid type")
 
 
 def short_to_long_option(short, docstring):
-    """Convert the one character short option into the option specified in the docstring."""
-    if not docstring:
-        raise KeyError
-    start = docstring.index(f"-{short}, --") + 6
-    end = None
-    for char in [" ", "\n"]:
-        if docstring.find(char, start) >= 0:
-            end = docstring.find(char, start)
-            break
-    return docstring[start:end].replace("-", "_")
+    """
+    Converts a one character short option to a long option accoring to the help message.
+    """
+    template = f"-{short}, --"
+    if (start := docstring.find(template)) != -1:
+        start += len(template)
+        chars = (" ", "\n", "]")
+
+        try:
+            end = min(i for ws in chars if (i := docstring.find(ws, start)) != -1)
+            return docstring[start:end]
+
+        except ValueError:
+            if len(docstring) - start > 1:
+                return docstring[start:]
+
+    raise SystemExit(f"-{short}: invalid short option")
 
 
-def get_kwargs(argv, function, help_message=None):
-    """Parses argv into kwargs and converts the values according to a function signature."""
-    parameters = inspect.signature(function).parameters
-    parameter_values = list(parameters.values())
-    iterator = iter(argv)
-    kwargs = {}
+def parse_kwarg(key, argv, parameters):
+    """
+    Parses a single keyword argument from command-line arguments.
+    Handles '=' syntax for inline values. Casts `NoneType` values to `True`
+    and boolean values to `not default`.
+    """
+    key, value = key.split("=", 1) if "=" in key else (key, None)
+    key = key.replace("-", "_")
+    cast_to = get_type(parameters.get(key))
 
-    for key in iterator:
-        if key.startswith("-"):
-            if not key.startswith("--") and len(key) > 1:
-                _, *flags, short_option = key
-                if not help_message:
-                    raise KeyError
-                docstring = help_message(function)
+    if value is None:
+        if cast_to is bool:
+            return key, not parameters[key].default
+        if cast_to is type(None):
+            return key, True
+        value = next(argv)
 
-                for flag in flags:
-                    long_option = short_to_long_option(flag, docstring)
-                    if not long_option:
-                        raise KeyError
-                    key = long_option.replace("-", "_")
-
-                    cast_to = type_to_cast(parameters[key])
-                    if cast_to == bool:
-                        kwargs[key] = not parameters[key].default
-                    elif cast_to == type(None):
-                        kwargs[key] = True
-                    else:
-                        raise KeyError
-
-                long_option = short_to_long_option(short_option, docstring)
-                if not long_option:
-                    raise KeyError
-                key = long_option.replace("-", "_")
-
-            elif len(key) < 3:
-                raise KeyError
-            else:
-                key = key[2:].replace("-", "_")
-
-            value = None
-
-            if "=" in key:
-                key, value = key.split("=", 1)
-            if key in kwargs:
-                raise KeyError
-
-            cast_to = type_to_cast(parameters[key])
-
-            if cast_to == bool:
-                kwargs[key] = not parameters[key].default
-            elif cast_to == type(None):
-                kwargs[key] = True
-            else:
-                if value is None:
-                    value = next(iterator, None)
-                kwargs[key] = cast_to(value)
-        else:
-            parameter = parameter_values.pop(0)
-
-            if parameter.name in kwargs:
-                raise KeyError
-            
-            # Prevent args from being used as kwargs
-            if parameter.default is not inspect._empty:
-                raise KeyError
-
-            cast_to = type_to_cast(parameter)
-            kwargs[parameter.name] = cast_to(key)
-
-    if parameter_values and parameter_values[0].default is inspect._empty:
-        raise IndexError
-
-    return kwargs
+    return key, value if cast_to is str else cast_to(value)
 
 
-def type_to_cast(parameter):
-    """Returns the type of a parameter. Defaults to str."""
-
-    if parameter.annotation is not inspect._empty:
+def get_type(parameter):
+    """
+    Determines the type based on function signature annotations or defaults.
+    Falls back to `str` if neither is available.
+    """
+    if parameter.annotation is not parameter.empty:
         return parameter.annotation
-    if parameter.default is not inspect._empty:
+    if parameter.default is not parameter.empty:
         return type(parameter.default)
     return str
 
 
-def calling_frame(import_statement="import magicli"):
+def check_for_version(argv, parameters, docstring, module):
     """
-    Walks the call stack to find the frame with the import statement.
-    Returns the corresponding frame if it is found, and None otherwise.
+    Displays version information if --version is specified in the docstring.
     """
+    if (
+        "version" not in parameters
+        and any(
+            (argv == [arg] and string in docstring)
+            for arg, string in [("--version", "--version"), ("-v", "-v, --version")]
+        )
+        and module
+    ):
+        print(get_version(module))
+        raise SystemExit
 
-    frame = sys._getframe()
-    while frame:
-        frameinfo = inspect.getframeinfo(frame)
-        if frameinfo.code_context and frameinfo.code_context[0].lstrip().startswith(
-            import_statement
-        ):
-            return frame
-        frame = frame.f_back
+
+def help_message(help_function, obj, *args):
+    """
+    Generates a help message for a function or module.
+    Returns the object's docstring if available, otherwise generates the help message
+    using the provided `help_function`.
+    """
+    return inspect.getdoc(obj) or help_function(obj, *args) or 1
 
 
-if frame := calling_frame():
-    raise SystemExit(magicli(frame_globals=frame.f_globals))
+def help_from_function(function, name=None):
+    """
+    Generates a help message for a function based on its signature.
+    Displays the function name, required positional arguments, and
+    optional keyword arguments with their default values.
+    """
+    message = [name] if name else []
+    message.append(function.__name__)
+    message.extend(map(format_kwarg, inspect.signature(function).parameters.values()))
+    return format_message([["usage:", " ".join(message)]])
+
+
+def format_kwarg(kwarg):
+    """Formats a parameter as positional or optional argument."""
+    return kwarg.name if kwarg.default is kwarg.empty else f"[--{kwarg.name}]"
+
+
+def help_from_module(module):
+    """
+    Generates a help message for a module and lists available commands.
+    Lists all public functions that are not excluded in `__all__`.
+    """
+    message = []
+
+    if version := get_version(module):
+        message.append([f"{module.__name__} {version}"])
+
+    message.append(["usage:", f"{module.__name__} command"])
+
+    if commands := get_commands(module):
+        message.append(["commands:", *commands])
+
+    return format_message(message)
+
+
+def format_message(blocks):
+    """Formats blocks of text with proper indentation."""
+    return "\n\n".join("\n  ".join(block) for block in blocks)
+
+
+def load_module(name):
+    """Load module from name"""
+    try:
+        return importlib.import_module(name)
+    except ModuleNotFoundError:
+        raise SystemExit(f"{name}: command not found")
+
+
+def get_commands(module):
+    """Returns list of public commands, unless not present in `__all__`."""
+    return [
+        name
+        for name, _ in inspect.getmembers(module, inspect.isfunction)
+        if not name.startswith("_") and name in module.__dict__.get("__all__", [name])
+    ]
+
+
+def get_docstring(function):
+    """
+    Returns the cleaned up docstring of a function or an empty string.
+    """
+    return inspect.getdoc(function) or ""
+
+
+def get_version(module):
+    """
+    Returns the version of a module from its metadata or `__version__` attribute.
+    """
+    try:
+        return metadata.version(module.__name__)
+    except metadata.PackageNotFoundError:
+        return module.__dict__.get("__version__")
+
+
+def get_project_name():
+    """
+    Detect project name from project structure.
+    """
+    flat_layout = [path.stem for path in Path().glob("*.py")]
+    src_layout = [path.parent.name for path in Path().glob("*/__init__.py")]
+
+    if len(names := flat_layout + src_layout) == 1:
+        return names[0]
+
+    if name := input("CLI name: "):
+        return name
+
+    raise SystemExit(1)
+
+
+def cli():
+    """
+    Generates a "pyproject.toml" configuration file for a module and sets up the project script.
+    The CLI name must be the same as the module name.
+    """
+    pyproject = Path("pyproject.toml")
+    if (
+        pyproject.exists()
+        and input("Overwrite existing pyproject.toml? (yN) ").strip().lower() != "y"
+    ):
+        raise SystemExit(1)
+
+    name = get_project_name()
+    pyproject.write_text(
+        f"""\
+[build-system]
+requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "{name}"
+dynamic = ["version"]
+dependencies = ["magicli<3"]
+
+[project.scripts]
+{name} = "magicli:magicli"
+"""
+    )
+
+    message = ["pyproject.toml created! ✨"]
+    if Path(".git").exists():
+        message.append("You can specify the version with `git tag`")
+    else:
+        message.append(
+            "Error: Not a git repo. Run `git init`. Specify version with `git tag`."
+        )
+    print(*message, sep="\n")

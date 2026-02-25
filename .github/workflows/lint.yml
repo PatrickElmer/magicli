@@ -1,0 +1,43 @@
+name: Lint
+
+on:
+  pull_request:
+    paths:
+      - magicli.py
+
+jobs:
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          cache-dependency-glob: ""
+      - run: uv run --with flake8 flake8 magicli.py --extend-ignore=E501
+
+  pylint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          cache-dependency-glob: ""
+      - run: uv run --with pylint pylint --disable=unidiomatic-typecheck,raise-missing-from magicli.py
+
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          cache-dependency-glob: ""
+      - run: uv run --with ruff ruff format magicli.py --diff
+
+  isort:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          cache-dependency-glob: ""
+      - run: uv run --with isort isort --check --diff magicli.py
