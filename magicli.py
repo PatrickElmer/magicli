@@ -168,7 +168,11 @@ def check_for_version(argv, parameters, docstring, module):
         "version" not in parameters
         and any(
             (argv == [arg] and string in docstring)
-            for arg, string in [("--version", "--version"), ("-v", "-v, --version")]
+            for arg, string in [
+                ("--version", "--version"),
+                ("-v", "-v, --version"),
+                ("-V", "-V, --version"),
+            ]
         )
         and module
     ):
