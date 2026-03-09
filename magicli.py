@@ -38,7 +38,7 @@ def magicli():
 def is_command(argv, module):
     """
     Checks if the first argument is a valid command in the module and returns
-    the function to call if `argv[0]` is public and not excluded in `__all__`,
+    the function to call if `argv[0]` is public and not excluded in `__all__`.
     """
     if (
         argv
@@ -110,7 +110,7 @@ def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs)
 
 def short_to_long_option(short, docstring):
     """
-    Converts a one character short option to a long option accoring to the help message.
+    Converts a one character short option to a long option according to the help message.
     """
     template = f"-{short}, --"
     if (start := docstring.find(template)) != -1:
@@ -168,7 +168,11 @@ def check_for_version(argv, parameters, docstring, module):
         "version" not in parameters
         and any(
             (argv == [arg] and string in docstring)
-            for arg, string in [("--version", "--version"), ("-v", "-v, --version")]
+            for arg, string in [
+                ("--version", "--version"),
+                ("-v", "-v, --version"),
+                ("-V", "-V, --version"),
+            ]
         )
         and module
     ):
