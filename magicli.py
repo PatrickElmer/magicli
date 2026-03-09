@@ -238,7 +238,7 @@ def load_module(name):
 
 
 def get_commands(module):
-    """Returns list of public commands, unless not present in `__all__`."""
+    """Returns list of public commands that are not present in `__all__`."""
     return [
         name
         for name, _ in inspect.getmembers(module, inspect.isfunction)
