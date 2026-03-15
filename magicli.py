@@ -284,10 +284,50 @@ def get_project_name():
     raise SystemExit(1)
 
 
-def cli():
+def get_output(command):
+    try:
+        output = subprocess.run(command.split(), capture_output=True, text=True).stdout
+    except FileNotFoundError:
+        return None
+    return output[:-1] if output else None
+
+
+def get_homepage(url=None):
+    url = url or get_output("git remote get-url origin") or ""
+    if url.endswith(".git"):
+        url = url[:-4]
+    if url.startswith("git@"):
+        url = "https://" + url.replace(":", "/")[4:]
+    return url
+
+
+def cli(
+    name="",
+    author="",
+    email="",
+    readme="",
+    license="",
+    description="",
+    homepage="",
+):
     """
+    magiCLI✨
+
     Generates a "pyproject.toml" configuration file for a module and sets up the project script.
     The CLI name must be the same as the module name.
+
+    usage:
+      cli [option]
+
+    options:
+      --name
+      --author
+      --email
+      --readme
+      --license
+      --description
+      --homepage
+      -v, --version
     """
     pyproject = Path("pyproject.toml")
     if (
