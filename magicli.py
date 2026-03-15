@@ -6,6 +6,7 @@ line arguments based on function signatures.
 
 import importlib
 import inspect
+import subprocess
 import sys
 from importlib import metadata
 from pathlib import Path
@@ -22,7 +23,7 @@ def magicli():
     argv = sys.argv[1:]
 
     if name == "magicli":
-        raise SystemExit(call(cli, argv))
+        raise SystemExit(call(cli, argv, sys.modules["magicli"]))
 
     module = load_module(name)
     name = name.replace("-", "_")
@@ -336,22 +337,54 @@ def cli(
     ):
         raise SystemExit(1)
 
-    name = get_project_name()
-    pyproject.write_text(
-        f"""\
-[build-system]
-requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
-build-backend = "setuptools.build_meta"
+    name = name or get_project_name()
+    project = [
+        "[project]",
+        f'name = "{name}"',
+        'dynamic = ["version"]',
+        'dependencies = ["magicli<3"]',
+    ]
 
-[project]
-name = "{name}"
-dynamic = ["version"]
-dependencies = ["magicli<3"]
+    if not author:
+        author = get_output("git config --get user.name")
+    if not email:
+        email = get_output("git config --get user.email")
 
-[project.scripts]
-{name} = "magicli:magicli"
-"""
+    authors = [f'{k}="{v}"' for k, v in {"name": author, "email": email}.items() if v]
+    if authors:
+        project.append(f"authors = [{{{', '.join(authors)}}}]")
+
+    if readme or Path(readme := "README.md").exists():
+        project.append(f'readme = "{readme}"')
+
+    if license or Path(license := "LICENSE").exists():
+        project.append(f'license-files = ["{license}"]')
+
+    if not description:
+        try:
+            if doc := (importlib.import_module(name).__doc__ or "").split("\n\n"):
+                description = " ".join(
+                    [l for line in doc[0].splitlines() if (l := line.strip())]
+                )
+        except ModuleNotFoundError:
+            pass
+
+    if description:
+        project.append(f'description = "{description}"')
+
+    blocks = [project, ["[project.scripts]", f'{name} = "magicli:magicli"']]
+    if homepage or (homepage := get_homepage()):
+        blocks.append(["[project.urls]", f'Home = "{homepage}"'])
+
+    blocks.append(
+        [
+            "[build-system]",
+            'requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]',
+            'build-backend = "setuptools.build_meta"',
+        ]
     )
+
+    pyproject.write_text(format_blocks(blocks, sep="\n") + "\n")
 
     message = ["pyproject.toml created! ✨"]
     if Path(".git").exists():
