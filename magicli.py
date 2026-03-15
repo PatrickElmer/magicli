@@ -198,7 +198,7 @@ def help_from_function(function, name=None):
     message = [name] if name else []
     message.append(function.__name__)
     message.extend(map(format_kwarg, inspect.signature(function).parameters.values()))
-    return format_message([["usage:", " ".join(message)]])
+    return format_blocks([["usage:", " ".join(message)]])
 
 
 def format_kwarg(kwarg):
@@ -221,12 +221,12 @@ def help_from_module(module):
     if commands := get_commands(module):
         message.append(["commands:", *commands])
 
-    return format_message(message)
+    return format_blocks(message)
 
 
-def format_message(blocks):
+def format_blocks(blocks, sep="\n  "):
     """Formats blocks of text with proper indentation."""
-    return "\n\n".join("\n  ".join(block) for block in blocks)
+    return "\n\n".join(sep.join(block) for block in blocks)
 
 
 def load_module(name):
