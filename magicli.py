@@ -267,10 +267,15 @@ def get_project_name():
     """
     Detect project name from project structure.
     """
-    flat_layout = [path.stem for path in Path().glob("*.py")]
-    src_layout = [path.parent.name for path in Path().glob("*/__init__.py")]
+    single_file_layout = [path.stem for path in Path().glob("*.py")]
+    flat_layout = [
+        path.parent.name
+        for path in Path().glob("*/__init__.py")
+        if path.parent.name != "tests"
+    ]
+    src_layout = [path.parent.name for path in Path().glob("src/*/__init__.py")]
 
-    if len(names := flat_layout + src_layout) == 1:
+    if len(names := single_file_layout + flat_layout + src_layout) == 1:
         return names[0]
 
     if name := input("CLI name: "):
