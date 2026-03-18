@@ -1,4 +1,3 @@
-from functools import partial
 from inspect import Parameter, _ParameterKind
 
 import pytest
@@ -7,7 +6,7 @@ from magicli import parse_short_options, short_to_long_option
 
 
 @pytest.mark.parametrize(
-    ["default", "result"],
+    ("default", "result"),
     [
         (None, True),
         (True, False),

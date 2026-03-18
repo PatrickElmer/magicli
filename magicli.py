@@ -6,6 +6,7 @@ line arguments based on function signatures.
 
 import importlib
 import inspect
+import subprocess
 import sys
 from importlib import metadata
 from pathlib import Path
@@ -22,7 +23,7 @@ def magicli():
     argv = sys.argv[1:]
 
     if name == "magicli":
-        raise SystemExit(call(cli, argv))
+        raise SystemExit(call(cli, argv, sys.modules["magicli"]))
 
     module = load_module(name)
     name = name.replace("-", "_")
@@ -198,7 +199,7 @@ def help_from_function(function, name=None):
     message = [name] if name else []
     message.append(function.__name__)
     message.extend(map(format_kwarg, inspect.signature(function).parameters.values()))
-    return format_message([["usage:", " ".join(message)]])
+    return format_blocks([["usage:", " ".join(message)]])
 
 
 def format_kwarg(kwarg):
@@ -221,12 +222,12 @@ def help_from_module(module):
     if commands := get_commands(module):
         message.append(["commands:", *commands])
 
-    return format_message(message)
+    return format_blocks(message)
 
 
-def format_message(blocks):
+def format_blocks(blocks, sep="\n  "):
     """Formats blocks of text with proper indentation."""
-    return "\n\n".join("\n  ".join(block) for block in blocks)
+    return "\n\n".join(sep.join(block) for block in blocks)
 
 
 def load_module(name):
@@ -267,10 +268,15 @@ def get_project_name():
     """
     Detect project name from project structure.
     """
-    flat_layout = [path.stem for path in Path().glob("*.py")]
-    src_layout = [path.parent.name for path in Path().glob("*/__init__.py")]
+    single_file_layout = [path.stem for path in Path().glob("*.py")]
+    flat_layout = [
+        path.parent.name
+        for path in Path().glob("*/__init__.py")
+        if path.parent.name != "tests"
+    ]
+    src_layout = [path.parent.name for path in Path().glob("src/*/__init__.py")]
 
-    if len(names := flat_layout + src_layout) == 1:
+    if len(names := single_file_layout + flat_layout + src_layout) == 1:
         return names[0]
 
     if name := input("CLI name: "):
@@ -279,10 +285,61 @@ def get_project_name():
     raise SystemExit(1)
 
 
-def cli():
+def get_output(command):
+    """Return the stdout of a shell command or None on failure."""
+    try:
+        output = subprocess.run(
+            command.split(), capture_output=True, text=True, check=False
+        ).stdout
+    except FileNotFoundError:
+        return None
+    return output.removesuffix("\n") if output else None
+
+
+def get_homepage(url=None):
+    """Return a homepage url from a git remote url."""
+    url = url or get_output("git remote get-url origin") or ""
+    url = url.removesuffix(".git")
+    if url.startswith("git@"):
+        url = "https://" + url.replace(":", "/")[4:]
+    return url
+
+
+def get_description(name):
+    """Return the first paragraph of a module's docstring if available."""
+    try:
+        if doc := (importlib.import_module(name).__doc__ or "").split("\n\n"):
+            return " ".join(
+                [stripped for line in doc[0].splitlines() if (stripped := line.strip())]
+            )
+    except ModuleNotFoundError:
+        pass
+    return None
+
+
+def cli(
+    name="",
+    author="",
+    email="",
+    description="",
+    homepage="",
+):
     """
+    magiCLI✨
+
     Generates a "pyproject.toml" configuration file for a module and sets up the project script.
     The CLI name must be the same as the module name.
+
+    usage:
+      magicli [option]
+
+    options:
+      --name
+      --author
+      --email
+      --description
+      --homepage
+      -v, --version
     """
     pyproject = Path("pyproject.toml")
     if (
@@ -291,22 +348,44 @@ def cli():
     ):
         raise SystemExit(1)
 
-    name = get_project_name()
-    pyproject.write_text(
-        f"""\
-[build-system]
-requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
-build-backend = "setuptools.build_meta"
+    name = name or get_project_name()
+    author = author or get_output("git config --get user.name")
+    email = email or get_output("git config --get user.email")
+    authors = [f'{k}="{v}"' for k, v in {"name": author, "email": email}.items() if v]
 
-[project]
-name = "{name}"
-dynamic = ["version"]
-dependencies = ["magicli<3"]
+    project = [
+        "[project]",
+        f'name = "{name}"',
+        'dynamic = ["version"]',
+        'dependencies = ["magicli<3"]',
+    ]
 
-[project.scripts]
-{name} = "magicli:magicli"
-"""
+    if authors:
+        project.append(f"authors = [{{{', '.join(authors)}}}]")
+
+    if Path(readme := "README.md").exists():
+        project.append(f'readme = "{readme}"')
+
+    if Path(license_file := "LICENSE").exists():
+        project.append(f'license-files = ["{license_file}"]')
+
+    if description or (description := get_description(name)):
+        project.append(f'description = "{description}"')
+
+    blocks = [project, ["[project.scripts]", f'{name} = "magicli:magicli"']]
+
+    if homepage or (homepage := get_homepage()):
+        blocks.append(["[project.urls]", f'Home = "{homepage}"'])
+
+    blocks.append(
+        [
+            "[build-system]",
+            'requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]',
+            'build-backend = "setuptools.build_meta"',
+        ]
     )
+
+    pyproject.write_text(format_blocks(blocks, sep="\n") + "\n", encoding="utf-8")
 
     message = ["pyproject.toml created! ✨"]
     if Path(".git").exists():
