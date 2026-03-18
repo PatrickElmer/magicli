@@ -286,14 +286,18 @@ def get_project_name():
 
 
 def get_output(command):
+    """Return the stdout of a shell command or None on failure."""
     try:
-        output = subprocess.run(command.split(), capture_output=True, text=True).stdout
+        output = subprocess.run(
+            command.split(), capture_output=True, text=True, check=False
+        ).stdout
     except FileNotFoundError:
         return None
-    return output[:-1] if output else None
+    return output.removesuffix("\n") if output else None
 
 
 def get_homepage(url=None):
+    """Return a homepage url from a git remote url."""
     url = url or get_output("git remote get-url origin") or ""
     url = url.removesuffix(".git")
     if url.startswith("git@"):
@@ -302,6 +306,7 @@ def get_homepage(url=None):
 
 
 def get_description(name):
+    """Return the first paragraph of a module's docstring if available."""
     try:
         if doc := (importlib.import_module(name).__doc__ or "").split("\n\n"):
             return " ".join(
@@ -309,6 +314,7 @@ def get_description(name):
             )
     except ModuleNotFoundError:
         pass
+    return None
 
 
 def cli(
@@ -362,8 +368,8 @@ def cli(
     if Path(readme := "README.md").exists():
         project.append(f'readme = "{readme}"')
 
-    if Path(license := "LICENSE").exists():
-        project.append(f'license-files = ["{license}"]')
+    if Path(license_file := "LICENSE").exists():
+        project.append(f'license-files = ["{license_file}"]')
 
     if description or (description := get_description(name)):
         project.append(f'description = "{description}"')
@@ -381,7 +387,7 @@ def cli(
         ]
     )
 
-    pyproject.write_text(format_blocks(blocks, sep="\n") + "\n")
+    pyproject.write_text(format_blocks(blocks, sep="\n") + "\n", encoding="utf-8")
 
     message = ["pyproject.toml created! ✨"]
     if Path(".git").exists():
