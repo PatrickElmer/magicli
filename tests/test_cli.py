@@ -2,7 +2,14 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-from fixtures import empty_directory, pyproject, with_git, with_tempdir, with_two_files
+from fixtures import (
+    empty_directory,
+    pyproject,
+    with_git,
+    with_readme_and_license,
+    with_tempdir,
+    with_two_files,
+)
 
 from magicli import cli, get_description, get_homepage, get_output, get_project_name
 
@@ -85,13 +92,11 @@ def test_get_description():
     assert get_description("magicli") is not None
 
 
-def test_cli_with_kwargs(with_tempdir):
+def test_cli_with_kwargs(with_readme_and_license):
     cli(
         name="name",
         author="Patrick Elmer",
         email="patrick@elmer.ws",
-        readme="README.md",
-        license="LICENSE",
         description="docstring",
         homepage="https://github.com/PatrickElmer/magicli",
     )

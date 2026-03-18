@@ -315,8 +315,6 @@ def cli(
     name="",
     author="",
     email="",
-    readme="",
-    license="",
     description="",
     homepage="",
 ):
@@ -361,10 +359,10 @@ def cli(
     if authors:
         project.append(f"authors = [{{{', '.join(authors)}}}]")
 
-    if readme or Path(readme := "README.md").exists():
+    if Path(readme := "README.md").exists():
         project.append(f'readme = "{readme}"')
 
-    if license or Path(license := "LICENSE").exists():
+    if Path(license := "LICENSE").exists():
         project.append(f'license-files = ["{license}"]')
 
     if description or (description := get_description(name)):
