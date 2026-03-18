@@ -1,8 +1,9 @@
 import sys
-from unittest import mock
 from functools import partial
+from unittest import mock
 
 import pytest
+from fixtures import pyproject
 
 from magicli import magicli
 
@@ -85,7 +86,7 @@ def test_module_not_found():
 
 
 @mock.patch("builtins.input", lambda *args: "n")
-def test_module_is_magicli():
+def test_module_is_magicli(pyproject):
     sys.argv = ["magicli"]
     with pytest.raises(SystemExit) as error:
         magicli()

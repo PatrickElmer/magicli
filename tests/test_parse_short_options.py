@@ -1,4 +1,3 @@
-from functools import partial
 from inspect import Parameter, _ParameterKind
 
 import pytest
