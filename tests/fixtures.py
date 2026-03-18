@@ -23,35 +23,35 @@ def _teardown(directory, cwd):
     os.chdir(cwd)
 
 
-@pytest.fixture()
+@pytest.fixture
 def with_tempdir():
     directory, cwd = _setup(["module.py"])
     yield directory.name
     _teardown(directory, cwd)
 
 
-@pytest.fixture()
+@pytest.fixture
 def with_two_files():
     directory, cwd = _setup(["module.py", "two.py"])
     yield
     _teardown(directory, cwd)
 
 
-@pytest.fixture()
+@pytest.fixture
 def pyproject():
     directory, cwd = _setup(["pyproject.toml", "module.py"])
     yield Path(directory.name, "pyproject.toml")
     _teardown(directory, cwd)
 
 
-@pytest.fixture()
+@pytest.fixture
 def with_git():
     directory, cwd = _setup([], dirname=".git")
     yield
     _teardown(directory, cwd)
 
 
-@pytest.fixture()
+@pytest.fixture
 def empty_directory():
     directory, cwd = _setup([])
     yield

@@ -29,9 +29,9 @@ def test_parse_kwarg_bool_and_none(default, result):
 
 
 def test_get_type():
-    assert get_type(Parameter("a", PK, annotation=int)) == int
-    assert get_type(Parameter("b", PK, default=1)) == int
-    assert get_type(Parameter("c", PK)) == str
+    assert get_type(Parameter("a", PK, annotation=int)) is int
+    assert get_type(Parameter("b", PK, default=1)) is int
+    assert get_type(Parameter("c", PK)) is str
 
 
 def test_args_and_kwargs():

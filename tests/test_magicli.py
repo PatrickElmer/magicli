@@ -85,7 +85,7 @@ def test_module_not_found():
         magicli()
 
 
-@mock.patch("builtins.input", lambda *args: "n")
+@mock.patch("builtins.input", return_value="n")
 def test_module_is_magicli(pyproject):
     sys.argv = ["magicli"]
     with pytest.raises(SystemExit) as error:

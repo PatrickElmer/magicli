@@ -30,14 +30,14 @@ def test_automatic_name(pyproject):
     assert 'name = "module"' in pyproject.read_text()
 
 
-@mock.patch("builtins.input", lambda *args: "y")
+@mock.patch("builtins.input", lambda *_: "y")
 def test_overwrite_pyproject_toml(pyproject):
     cli()
 
     assert 'name = "module"' in pyproject.read_text()
 
 
-@mock.patch("builtins.input", lambda *args: "")
+@mock.patch("builtins.input", lambda *_: "")
 def test_empty_cli_name_failure(with_two_files):
     with pytest.raises(SystemExit) as error:
         get_project_name()
@@ -69,8 +69,8 @@ def test_without_git_repo(capsys, empty_directory):
 
 
 def test_get_output():
-    assert get_output("ls") != None
-    assert get_output("-") == None
+    assert get_output("ls") is not None
+    assert get_output("-") is None
 
 
 def test_get_homepage():
@@ -82,7 +82,7 @@ def test_get_homepage():
 
 
 def test_get_description():
-    assert get_description("magicli") != None
+    assert get_description("magicli") is not None
 
 
 def test_cli_with_kwargs(with_tempdir):
