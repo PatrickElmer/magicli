@@ -295,8 +295,7 @@ def get_output(command):
 
 def get_homepage(url=None):
     url = url or get_output("git remote get-url origin") or ""
-    if url.endswith(".git"):
-        url = url[:-4]
+    url = url.removesuffix(".git")
     if url.startswith("git@"):
         url = "https://" + url.replace(":", "/")[4:]
     return url
@@ -305,7 +304,9 @@ def get_homepage(url=None):
 def get_description(name):
     try:
         if doc := (importlib.import_module(name).__doc__ or "").split("\n\n"):
-            return " ".join([l for line in doc[0].splitlines() if (l := line.strip())])
+            return " ".join(
+                [stripped for line in doc[0].splitlines() if (stripped := line.strip())]
+            )
     except ModuleNotFoundError:
         pass
 
