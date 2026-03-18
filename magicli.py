@@ -302,6 +302,14 @@ def get_homepage(url=None):
     return url
 
 
+def get_description(name):
+    try:
+        if doc := (importlib.import_module(name).__doc__ or "").split("\n\n"):
+            return " ".join([l for line in doc[0].splitlines() if (l := line.strip())])
+    except ModuleNotFoundError:
+        pass
+
+
 def cli(
     name="",
     author="",
@@ -338,6 +346,10 @@ def cli(
         raise SystemExit(1)
 
     name = name or get_project_name()
+    author = author or get_output("git config --get user.name")
+    email = email or get_output("git config --get user.email")
+    authors = [f'{k}="{v}"' for k, v in {"name": author, "email": email}.items() if v]
+
     project = [
         "[project]",
         f'name = "{name}"',
@@ -345,12 +357,6 @@ def cli(
         'dependencies = ["magicli<3"]',
     ]
 
-    if not author:
-        author = get_output("git config --get user.name")
-    if not email:
-        email = get_output("git config --get user.email")
-
-    authors = [f'{k}="{v}"' for k, v in {"name": author, "email": email}.items() if v]
     if authors:
         project.append(f"authors = [{{{', '.join(authors)}}}]")
 
@@ -360,19 +366,11 @@ def cli(
     if license or Path(license := "LICENSE").exists():
         project.append(f'license-files = ["{license}"]')
 
-    if not description:
-        try:
-            if doc := (importlib.import_module(name).__doc__ or "").split("\n\n"):
-                description = " ".join(
-                    [l for line in doc[0].splitlines() if (l := line.strip())]
-                )
-        except ModuleNotFoundError:
-            pass
-
-    if description:
+    if description or (description := get_description(name)):
         project.append(f'description = "{description}"')
 
     blocks = [project, ["[project.scripts]", f'{name} = "magicli:magicli"']]
+
     if homepage or (homepage := get_homepage()):
         blocks.append(["[project.urls]", f'Home = "{homepage}"'])
 
