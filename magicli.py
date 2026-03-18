@@ -331,14 +331,12 @@ def cli(
     The CLI name must be the same as the module name.
 
     usage:
-      cli [option]
+      magicli [option]
 
     options:
       --name
       --author
       --email
-      --readme
-      --license
       --description
       --homepage
       -v, --version
