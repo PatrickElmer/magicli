@@ -8,6 +8,7 @@ import importlib
 import inspect
 import subprocess
 import sys
+from functools import partial
 from importlib import metadata
 from pathlib import Path
 
@@ -23,14 +24,20 @@ def magicli():
         raise SystemExit(call(cli, argv, sys.modules["magicli"]))
 
     module = load_module(name)
-    name = name.replace("-", "_")
 
-    if function := is_command(argv, module):
-        call(function, argv[1:], module, name)
-    elif inspect.isfunction(function := module.__dict__.get(name)):
-        call(function, argv, module)
+    if function := get_function_from_argv(argv, module, name.replace("-", "_")):
+        function()
     else:
         raise SystemExit(help_message(help_from_module, module))
+
+
+def get_function_from_argv(argv, module, name):
+    """Returns the module's function to call based on argv."""
+    if function := is_command(argv, module):
+        return partial(call, function, argv[1:], module, name)
+    if inspect.isfunction(function := module.__dict__.get(name)):
+        return partial(call, function, argv, module)
+    return None
 
 
 def is_command(argv, module):
