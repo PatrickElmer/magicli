@@ -14,9 +14,7 @@ from pathlib import Path
 
 
 def magicli():
-    """
-    Parses command-line arguments and calls the appropriate function.
-    """
+    """Parses command-line arguments and calls the appropriate function."""
     name = Path(sys.argv[0]).name
     argv = sys.argv[1:]
 
@@ -110,9 +108,7 @@ def parse_kwarg(key, argv, parameters):
 
 
 def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs):
-    """
-    Converts short options into long options and casts into correct types.
-    """
+    """Converts short options into long options and casts into correct types."""
     for i, short in enumerate(short_options):
         long = short_to_long_option(short, docstring)
 
@@ -132,9 +128,7 @@ def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs)
 
 
 def short_to_long_option(short, docstring):
-    """
-    Converts a one character short option to a long option according to the help message.
-    """
+    """Converts a one character short option to a long option according to the help message."""
     template = f"-{short}, --"
     if (start := docstring.find(template)) != -1:
         start += len(template)
@@ -158,9 +152,7 @@ def get_type(parameter):
 
 
 def check_for_version(argv, parameters, docstring, module):
-    """
-    Displays version information if --version is specified in the docstring.
-    """
+    """Displays version information if --version is specified in the docstring."""
     if "version" in parameters or not module or len(argv) != 1:
         return
     args = {
@@ -240,9 +232,7 @@ def get_commands(module):
 
 
 def get_version(module):
-    """
-    Returns the version of a module from its metadata or `__version__` attribute.
-    """
+    """Returns the version of a module from its metadata or `__version__` attribute."""
     try:
         return metadata.version(module.__name__)
     except metadata.PackageNotFoundError:
@@ -250,9 +240,7 @@ def get_version(module):
 
 
 def get_project_name():
-    """
-    Detect project name from project structure.
-    """
+    """Detect project name from project structure."""
     single_file_layout = [path.stem for path in Path().glob("*.py")]
     flat_layout = [
         path.parent.name
