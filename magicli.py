@@ -73,9 +73,7 @@ def call(function, argv, module=None, name=None):
 
 
 def args_and_kwargs(argv, parameters, docstring):
-    """
-    Parses command-line arguments into positional and keyword arguments.
-    """
+    """Convert argv into args and kwargs."""
     parameter_list = list(parameters.values())
     args, kwargs = [], {}
 
@@ -89,6 +87,26 @@ def args_and_kwargs(argv, parameters, docstring):
             args.append(get_type(parameter_list[len(args)])(key))
 
     return args, kwargs
+
+
+def parse_kwarg(key, argv, parameters):
+    """
+    Parses a single keyword argument from command-line arguments.
+    Handles '=' syntax for inline values. Casts `NoneType` values to `True`
+    and boolean values to `not default`.
+    """
+    key, value = key.split("=", 1) if "=" in key else (key, None)
+    key = key.replace("-", "_")
+    cast_to = get_type(parameters.get(key))
+
+    if value is None:
+        if cast_to is bool:
+            return key, not parameters[key].default
+        if cast_to is type(None):
+            return key, True
+        value = next(argv)
+
+    return key, value if cast_to is str else cast_to(value)
 
 
 def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs):
@@ -131,26 +149,6 @@ def short_to_long_option(short, docstring):
                 return docstring[start:]
 
     raise SystemExit(f"-{short}: invalid short option")
-
-
-def parse_kwarg(key, argv, parameters):
-    """
-    Parses a single keyword argument from command-line arguments.
-    Handles '=' syntax for inline values. Casts `NoneType` values to `True`
-    and boolean values to `not default`.
-    """
-    key, value = key.split("=", 1) if "=" in key else (key, None)
-    key = key.replace("-", "_")
-    cast_to = get_type(parameters.get(key))
-
-    if value is None:
-        if cast_to is bool:
-            return key, not parameters[key].default
-        if cast_to is type(None):
-            return key, True
-        value = next(argv)
-
-    return key, value if cast_to is str else cast_to(value)
 
 
 def get_type(parameter):
