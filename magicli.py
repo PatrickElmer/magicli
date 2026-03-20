@@ -204,17 +204,17 @@ def help_from_module(module):
     Generates a help message for a module and lists available commands.
     Lists all public functions that are not excluded in `__all__`.
     """
-    message = []
+    blocks = []
 
     if version := get_version(module):
-        message.append([f"{module.__name__} {version}"])
+        blocks.append([f"{module.__name__} {version}"])
 
-    message.append(["usage:", f"{module.__name__} command"])
+    blocks.append(["usage:", f"{module.__name__} command"])
 
     if commands := get_commands(module):
-        message.append(["commands:", *commands])
+        blocks.append(["commands:", *commands])
 
-    return format_blocks(message)
+    return format_blocks(blocks)
 
 
 def format_blocks(blocks, sep="\n  "):
