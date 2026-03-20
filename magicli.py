@@ -340,10 +340,10 @@ def cli(name="", author="", email="", description="", homepage=""):
         project.append(f"authors = [{{{', '.join(authors)}}}]")
 
     if Path("README.md").exists():
-        project.append(f'readme = "README.md"')
+        project.append('readme = "README.md"')
 
     if Path("LICENSE").exists():
-        project.append(f'license-files = ["LICENSE"]')
+        project.append('license-files = ["LICENSE"]')
 
     if description or (description := get_description(name)):
         project.append(f'description = "{description}"')
