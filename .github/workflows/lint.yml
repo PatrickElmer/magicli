@@ -13,7 +13,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           cache-dependency-glob: ""
-      - run: uv run --with flake8 flake8 magicli.py --extend-ignore=E501
+      - run: uv run --with flake8 flake8 magicli.py --extend-ignore=E203,E501
 
   pylint:
     runs-on: ubuntu-latest
