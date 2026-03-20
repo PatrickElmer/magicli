@@ -16,9 +16,6 @@ def magicli():
     """
     Parses command-line arguments and calls the appropriate function.
     """
-    if not sys.argv:
-        raise SystemExit(1)
-
     name = Path(sys.argv[0]).name
     argv = sys.argv[1:]
 
