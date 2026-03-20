@@ -299,13 +299,7 @@ def get_description(name):
     return " ".join(stripped for line in doc.splitlines() if (stripped := line.strip()))
 
 
-def cli(
-    name="",
-    author="",
-    email="",
-    description="",
-    homepage="",
-):
+def cli(name="", author="", email="", description="", homepage=""):
     """
     magiCLI✨
 
@@ -345,11 +339,11 @@ def cli(
     if authors:
         project.append(f"authors = [{{{', '.join(authors)}}}]")
 
-    if Path(readme := "README.md").exists():
-        project.append(f'readme = "{readme}"')
+    if Path("README.md").exists():
+        project.append(f'readme = "README.md"')
 
-    if Path(license_file := "LICENSE").exists():
-        project.append(f'license-files = ["{license_file}"]')
+    if Path("LICENSE").exists():
+        project.append(f'license-files = ["LICENSE"]')
 
     if description or (description := get_description(name)):
         project.append(f'description = "{description}"')
@@ -369,11 +363,10 @@ def cli(
 
     pyproject.write_text(format_blocks(blocks, sep="\n") + "\n", encoding="utf-8")
 
-    message = ["pyproject.toml created! ✨"]
     if Path(".git").exists():
-        message.append("You can specify the version with `git tag`")
+        git_note = "You can specify the version with `git tag`"
     else:
-        message.append(
+        git_note = (
             "Error: Not a git repo. Run `git init`. Specify version with `git tag`."
         )
-    print(*message, sep="\n")
+    print("pyproject.toml created! ✨", git_note, sep="\n")
