@@ -283,11 +283,10 @@ def get_output(command):
 
 def get_homepage(url=None):
     """Return a homepage url from a git remote url."""
-    url = url or get_output("git remote get-url origin") or ""
-    url = url.removesuffix(".git")
+    url = url or get_output("git remote get-url origin")
     if url.startswith("git@"):
-        url = "https://" + url.replace(":", "/")[4:]
-    return url
+        url = "https://" + url.removeprefix("git@").replace(":", "/")
+    return url.removesuffix(".git")
 
 
 def get_description(name):
