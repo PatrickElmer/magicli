@@ -22,7 +22,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           cache-dependency-glob: ""
-      - run: uv run --with pylint pylint --disable=unidiomatic-typecheck,raise-missing-from magicli.py
+      - run: uv run --with pylint pylint magicli.py
 
   ruff:
     runs-on: ubuntu-latest
