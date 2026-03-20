@@ -61,7 +61,7 @@ def call(function, argv, module=None, name=None):
     Displays a help message if an exception occurs.
     """
     try:
-        docstring = get_docstring(function)
+        docstring = inspect.getdoc(function) or ""
         parameters = inspect.signature(function).parameters
 
         check_for_version(argv, parameters, docstring, module)
@@ -249,13 +249,6 @@ def get_commands(module):
         for name, _ in inspect.getmembers(module, inspect.isfunction)
         if not name.startswith("_") and name in module.__dict__.get("__all__", [name])
     ]
-
-
-def get_docstring(function):
-    """
-    Returns the cleaned up docstring of a function or an empty string.
-    """
-    return inspect.getdoc(function) or ""
 
 
 def get_version(module):
