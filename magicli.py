@@ -64,13 +64,13 @@ def call(function, argv, module=None, name=None):
 
         check_for_version(argv, parameters, docstring, module)
 
-        args, kwargs = args_and_kwargs(argv, parameters, docstring)
+        args, kwargs = parse_argv(argv, parameters, docstring)
         function(*args, **kwargs)
     except Exception:
         raise SystemExit(help_message(help_from_function, function, name))
 
 
-def args_and_kwargs(argv, parameters, docstring):
+def parse_argv(argv, parameters, docstring):
     """Convert argv into args and kwargs."""
     parameter_list = list(parameters.values())
     args, kwargs = [], {}
