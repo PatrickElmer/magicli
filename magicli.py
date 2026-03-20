@@ -161,18 +161,14 @@ def check_for_version(argv, parameters, docstring, module):
     """
     Displays version information if --version is specified in the docstring.
     """
-    if (
-        "version" not in parameters
-        and any(
-            (argv == [arg] and string in docstring)
-            for arg, string in [
-                ("--version", "--version"),
-                ("-v", "-v, --version"),
-                ("-V", "-V, --version"),
-            ]
-        )
-        and module
-    ):
+    if "version" in parameters or not module or len(argv) != 1:
+        return
+    args = {
+        "--version": "--version",
+        "-v": "-v, --version",
+        "-V": "-V, --version",
+    }
+    if (doc := args.get(argv[0])) and doc in docstring:
         print(get_version(module))
         raise SystemExit
 
