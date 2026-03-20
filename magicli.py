@@ -292,13 +292,11 @@ def get_homepage(url=None):
 def get_description(name):
     """Return the first paragraph of a module's docstring if available."""
     try:
-        if doc := (importlib.import_module(name).__doc__ or "").split("\n\n"):
-            return " ".join(
-                [stripped for line in doc[0].splitlines() if (stripped := line.strip())]
-            )
+        module = importlib.import_module(name)
     except ModuleNotFoundError:
-        pass
-    return None
+        return None
+    doc = (module.__doc__ or "").split("\n\n")[0]
+    return " ".join(stripped for line in doc.splitlines() if (stripped := line.strip()))
 
 
 def cli(
