@@ -275,10 +275,10 @@ def get_output(command):
     try:
         output = subprocess.run(
             command.split(), capture_output=True, text=True, check=False
-        ).stdout
+        )
     except FileNotFoundError:
         return None
-    return output.removesuffix("\n") if output else None
+    return output.stdout.removesuffix("\n") if output else None
 
 
 def get_homepage(url=None):
