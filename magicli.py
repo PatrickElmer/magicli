@@ -263,15 +263,15 @@ def get_output(command):
     try:
         output = subprocess.run(
             command.split(), capture_output=True, text=True, check=False
-        )
+        ).stdout
     except FileNotFoundError:
         return None
-    return output.stdout.removesuffix("\n") if output else None
+    return output.removesuffix("\n") or None
 
 
 def get_homepage(url=None):
     """Return a homepage url from a git remote url."""
-    url = url or get_output("git remote get-url origin")
+    url = url or get_output("git remote get-url origin") or ""
     if url.startswith("git@"):
         url = "https://" + url.removeprefix("git@").replace(":", "/")
     return url.removesuffix(".git")
