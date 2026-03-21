@@ -3,7 +3,7 @@ from inspect import Parameter, _ParameterKind
 
 import pytest
 
-from magicli import args_and_kwargs, get_type, parse_kwarg
+from magicli import parse_argv, get_type, parse_kwarg
 
 PK = _ParameterKind.POSITIONAL_OR_KEYWORD
 
@@ -34,25 +34,25 @@ def test_get_type():
     assert get_type(Parameter("c", PK)) is str
 
 
-def test_args_and_kwargs():
+def test_parse_argv():
     parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
-    assert args_and_kwargs(["a", "--kwarg=2"], parameters, docstring="") == (
+    assert parse_argv(["a", "--kwarg=2"], parameters, docstring="") == (
         ["a"],
         {"kwarg": 2},
     )
-    assert args_and_kwargs(["a", "--kwarg", "2"], parameters, docstring="") == (
+    assert parse_argv(["a", "--kwarg", "2"], parameters, docstring="") == (
         ["a"],
         {"kwarg": 2},
     )
 
 
-def test_args_and_kwargs_with_underscore():
+def test_parse_argv_with_underscore():
     parameters = inspect.signature(lambda arg, kwarg_1=1: None).parameters
-    assert args_and_kwargs(["a", "--kwarg-1=2"], parameters, docstring="") == (
+    assert parse_argv(["a", "--kwarg-1=2"], parameters, docstring="") == (
         ["a"],
         {"kwarg_1": 2},
     )
-    assert args_and_kwargs(["a", "--kwarg-1", "2"], parameters, docstring="") == (
+    assert parse_argv(["a", "--kwarg-1", "2"], parameters, docstring="") == (
         ["a"],
         {"kwarg_1": 2},
     )

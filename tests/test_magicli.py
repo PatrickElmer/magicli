@@ -66,12 +66,6 @@ def test_wrong_command_not_called(mocked):
         magicli()
 
 
-def test_empty_sys_argv():
-    sys.argv = []
-    with pytest.raises(SystemExit):
-        magicli()
-
-
 @mock.patch("importlib.import_module", side_effect=module_empty)
 def test_module_without_functions(mocked):
     sys.argv = ["name"]

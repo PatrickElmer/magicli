@@ -19,3 +19,9 @@ dev = ["pytest"]
 
 [project.urls]
 Home = "https://github.com/PatrickElmer/magicli"
+
+[tool.pylint."messages control"]
+disable = [
+    "unidiomatic-typecheck",
+    "raise-missing-from",
+]

@@ -8,17 +8,13 @@ import importlib
 import inspect
 import subprocess
 import sys
+from functools import partial
 from importlib import metadata
 from pathlib import Path
 
 
 def magicli():
-    """
-    Parses command-line arguments and calls the appropriate function.
-    """
-    if not sys.argv:
-        raise SystemExit(1)
-
+    """Parses command-line arguments and calls the appropriate function."""
     name = Path(sys.argv[0]).name
     argv = sys.argv[1:]
 
@@ -26,14 +22,20 @@ def magicli():
         raise SystemExit(call(cli, argv, sys.modules["magicli"]))
 
     module = load_module(name)
-    name = name.replace("-", "_")
 
-    if function := is_command(argv, module):
-        call(function, argv[1:], module, name)
-    elif inspect.isfunction(function := module.__dict__.get(name)):
-        call(function, argv, module)
+    if function := get_function_from_argv(argv, module, name.replace("-", "_")):
+        function()
     else:
         raise SystemExit(help_message(help_from_module, module))
+
+
+def get_function_from_argv(argv, module, name):
+    """Returns the module's function to call based on argv."""
+    if function := is_command(argv, module):
+        return partial(call, function, argv[1:], module, name)
+    if inspect.isfunction(function := module.__dict__.get(name)):
+        return partial(call, function, argv, module)
+    return None
 
 
 def is_command(argv, module):
@@ -57,21 +59,19 @@ def call(function, argv, module=None, name=None):
     Displays a help message if an exception occurs.
     """
     try:
-        docstring = get_docstring(function)
+        docstring = inspect.getdoc(function) or ""
         parameters = inspect.signature(function).parameters
 
         check_for_version(argv, parameters, docstring, module)
 
-        args, kwargs = args_and_kwargs(argv, parameters, docstring)
+        args, kwargs = parse_argv(argv, parameters, docstring)
         function(*args, **kwargs)
     except Exception:
         raise SystemExit(help_message(help_from_function, function, name))
 
 
-def args_and_kwargs(argv, parameters, docstring):
-    """
-    Parses command-line arguments into positional and keyword arguments.
-    """
+def parse_argv(argv, parameters, docstring):
+    """Convert argv into args and kwargs."""
     parameter_list = list(parameters.values())
     args, kwargs = [], {}
 
@@ -85,48 +85,6 @@ def args_and_kwargs(argv, parameters, docstring):
             args.append(get_type(parameter_list[len(args)])(key))
 
     return args, kwargs
-
-
-def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs):
-    """
-    Converts short options into long options and casts into correct types.
-    """
-    for i, short in enumerate(short_options):
-        long = short_to_long_option(short, docstring)
-
-        if long not in parameters:
-            raise SystemExit(f"--{long}: invalid long option")
-
-        cast_to = get_type(parameters[long])
-
-        if cast_to is bool:
-            kwargs[long] = not parameters[long].default
-        elif cast_to is type(None):
-            kwargs[long] = True
-        elif i == len(short_options) - 1:
-            kwargs[long] = cast_to(next(iter_argv))
-        else:
-            raise SystemExit(f"-{short}: invalid type")
-
-
-def short_to_long_option(short, docstring):
-    """
-    Converts a one character short option to a long option according to the help message.
-    """
-    template = f"-{short}, --"
-    if (start := docstring.find(template)) != -1:
-        start += len(template)
-        chars = (" ", "\n", "]")
-
-        try:
-            end = min(i for ws in chars if (i := docstring.find(ws, start)) != -1)
-            return docstring[start:end]
-
-        except ValueError:
-            if len(docstring) - start > 1:
-                return docstring[start:]
-
-    raise SystemExit(f"-{short}: invalid short option")
 
 
 def parse_kwarg(key, argv, parameters):
@@ -149,6 +107,38 @@ def parse_kwarg(key, argv, parameters):
     return key, value if cast_to is str else cast_to(value)
 
 
+def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs):
+    """Converts short options into long options and casts into correct types."""
+    for i, short in enumerate(short_options):
+        long = short_to_long_option(short, docstring)
+
+        if long not in parameters:
+            raise SystemExit(f"--{long}: invalid long option")
+
+        cast_to = get_type(parameters[long])
+
+        if cast_to is bool:
+            kwargs[long] = not parameters[long].default
+        elif cast_to is type(None):
+            kwargs[long] = True
+        elif i == len(short_options) - 1:
+            kwargs[long] = cast_to(next(iter_argv))
+        else:
+            raise SystemExit(f"-{short}: invalid type")
+
+
+def short_to_long_option(short, docstring):
+    """Converts a one character short option to a long option according to the help message."""
+    template = f"-{short}, --"
+    if (start := docstring.find(template)) != -1:
+        start += len(template)
+        if len(docstring) - start > 1:
+            chars = [" ", "\n", "]"]
+            indices = (i for char in chars if (i := docstring.find(char, start)) != -1)
+            return docstring[start : min(indices, default=None)]
+    raise SystemExit(f"-{short}: invalid short option")
+
+
 def get_type(parameter):
     """
     Determines the type based on function signature annotations or defaults.
@@ -162,21 +152,15 @@ def get_type(parameter):
 
 
 def check_for_version(argv, parameters, docstring, module):
-    """
-    Displays version information if --version is specified in the docstring.
-    """
-    if (
-        "version" not in parameters
-        and any(
-            (argv == [arg] and string in docstring)
-            for arg, string in [
-                ("--version", "--version"),
-                ("-v", "-v, --version"),
-                ("-V", "-V, --version"),
-            ]
-        )
-        and module
-    ):
+    """Displays version information if --version is specified in the docstring."""
+    if "version" in parameters or not module or len(argv) != 1:
+        return
+    args = {
+        "--version": "--version",
+        "-v": "-v, --version",
+        "-V": "-V, --version",
+    }
+    if (doc := args.get(argv[0])) and doc in docstring:
         print(get_version(module))
         raise SystemExit
 
@@ -212,17 +196,17 @@ def help_from_module(module):
     Generates a help message for a module and lists available commands.
     Lists all public functions that are not excluded in `__all__`.
     """
-    message = []
+    blocks = []
 
     if version := get_version(module):
-        message.append([f"{module.__name__} {version}"])
+        blocks.append([f"{module.__name__} {version}"])
 
-    message.append(["usage:", f"{module.__name__} command"])
+    blocks.append(["usage:", f"{module.__name__} command"])
 
     if commands := get_commands(module):
-        message.append(["commands:", *commands])
+        blocks.append(["commands:", *commands])
 
-    return format_blocks(message)
+    return format_blocks(blocks)
 
 
 def format_blocks(blocks, sep="\n  "):
@@ -239,7 +223,7 @@ def load_module(name):
 
 
 def get_commands(module):
-    """Returns list of public commands that are not present in `__all__`."""
+    """Returns list of public commands that are not excluded by `__all__`."""
     return [
         name
         for name, _ in inspect.getmembers(module, inspect.isfunction)
@@ -247,17 +231,8 @@ def get_commands(module):
     ]
 
 
-def get_docstring(function):
-    """
-    Returns the cleaned up docstring of a function or an empty string.
-    """
-    return inspect.getdoc(function) or ""
-
-
 def get_version(module):
-    """
-    Returns the version of a module from its metadata or `__version__` attribute.
-    """
+    """Returns the version of a module from its metadata or `__version__` attribute."""
     try:
         return metadata.version(module.__name__)
     except metadata.PackageNotFoundError:
@@ -265,9 +240,7 @@ def get_version(module):
 
 
 def get_project_name():
-    """
-    Detect project name from project structure.
-    """
+    """Detect project name from project structure."""
     single_file_layout = [path.stem for path in Path().glob("*.py")]
     flat_layout = [
         path.parent.name
@@ -293,37 +266,28 @@ def get_output(command):
         ).stdout
     except FileNotFoundError:
         return None
-    return output.removesuffix("\n") if output else None
+    return output.removesuffix("\n") or None
 
 
 def get_homepage(url=None):
     """Return a homepage url from a git remote url."""
     url = url or get_output("git remote get-url origin") or ""
-    url = url.removesuffix(".git")
     if url.startswith("git@"):
-        url = "https://" + url.replace(":", "/")[4:]
-    return url
+        url = "https://" + url.removeprefix("git@").replace(":", "/")
+    return url.removesuffix(".git")
 
 
 def get_description(name):
     """Return the first paragraph of a module's docstring if available."""
     try:
-        if doc := (importlib.import_module(name).__doc__ or "").split("\n\n"):
-            return " ".join(
-                [stripped for line in doc[0].splitlines() if (stripped := line.strip())]
-            )
+        module = importlib.import_module(name)
     except ModuleNotFoundError:
-        pass
-    return None
+        return None
+    doc = (module.__doc__ or "").split("\n\n")[0]
+    return " ".join(stripped for line in doc.splitlines() if (stripped := line.strip()))
 
 
-def cli(
-    name="",
-    author="",
-    email="",
-    description="",
-    homepage="",
-):
+def cli(name="", author="", email="", description="", homepage=""):
     """
     magiCLI✨
 
@@ -363,11 +327,11 @@ def cli(
     if authors:
         project.append(f"authors = [{{{', '.join(authors)}}}]")
 
-    if Path(readme := "README.md").exists():
-        project.append(f'readme = "{readme}"')
+    if Path("README.md").exists():
+        project.append('readme = "README.md"')
 
-    if Path(license_file := "LICENSE").exists():
-        project.append(f'license-files = ["{license_file}"]')
+    if Path("LICENSE").exists():
+        project.append('license-files = ["LICENSE"]')
 
     if description or (description := get_description(name)):
         project.append(f'description = "{description}"')
@@ -387,11 +351,10 @@ def cli(
 
     pyproject.write_text(format_blocks(blocks, sep="\n") + "\n", encoding="utf-8")
 
-    message = ["pyproject.toml created! ✨"]
     if Path(".git").exists():
-        message.append("You can specify the version with `git tag`")
+        git_note = "You can specify the version with `git tag`"
     else:
-        message.append(
+        git_note = (
             "Error: Not a git repo. Run `git init`. Specify version with `git tag`."
         )
-    print(*message, sep="\n")
+    print("pyproject.toml created! ✨", git_note, sep="\n")
