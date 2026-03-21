@@ -288,6 +288,7 @@ def get_description(name):
 
 
 def get_license_expression(content):
+    """Returns the license expression used in pyproject.toml."""
     return {
         "Apache License": "Apache-2.0",
         "BSD 2-Clause License": "BSD-2-Clause",
@@ -345,7 +346,8 @@ def cli(name="", author="", email="", description="", homepage=""):
         project.append('readme = "README.md"')
 
     if Path("LICENSE").exists():
-        if license_expression := get_license_expression(Path("LICENSE").read_text()):
+        license_content = Path("LICENSE").read_text(encoding="utf-8")
+        if license_expression := get_license_expression(license_content):
             project.append(f'license = "{license_expression}"')
         project.append('license-files = ["LICENSE"]')
 
