@@ -287,6 +287,21 @@ def get_description(name):
     return " ".join(stripped for line in doc.splitlines() if (stripped := line.strip()))
 
 
+def get_license_expression(content):
+    """Returns the license expression used in pyproject.toml."""
+    return {
+        "Apache License": "Apache-2.0",
+        "BSD 2-Clause License": "BSD-2-Clause",
+        "BSD 3-Clause License": "BSD-3-Clause",
+        "GNU AFFERO GENERAL PUBLIC LICENSE": "AGPL-3.0-or-later",
+        "GNU GENERAL PUBLIC LICENSE": "GPL-3.0-or-later",
+        "GNU LESSER GENERAL PUBLIC LICENSE": "LGPL-3.0-or-later",
+        "MIT License": "MIT",
+        "Mozilla Public License Version 2.0": "MPL-2.0",
+        "Public domain statement": "Unlicense",
+    }.get(content.split("\n")[0].strip())
+
+
 def cli(name="", author="", email="", description="", homepage=""):
     """
     magiCLI✨
@@ -331,6 +346,11 @@ def cli(name="", author="", email="", description="", homepage=""):
         project.append('readme = "README.md"')
 
     if Path("LICENSE").exists():
+        license_content = Path("LICENSE").read_text(encoding="utf-8")
+        if license_expression := get_license_expression(license_content):
+            project.append(f'license = "{license_expression}"')
+        else:
+            print("Unknown license: Failed to add SPDX identifier to project.license")
         project.append('license-files = ["LICENSE"]')
 
     if description or (description := get_description(name)):

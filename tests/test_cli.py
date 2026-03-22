@@ -6,12 +6,20 @@ from fixtures import (
     empty_directory,
     pyproject,
     with_git,
+    with_license,
     with_readme_and_license,
     with_tempdir,
     with_two_files,
 )
 
-from magicli import cli, get_description, get_homepage, get_output, get_project_name
+from magicli import (
+    cli,
+    get_description,
+    get_homepage,
+    get_license_expression,
+    get_output,
+    get_project_name,
+)
 
 
 def module(name):
@@ -92,7 +100,21 @@ def test_get_description():
     assert get_description("magicli") is not None
 
 
-def test_cli_with_kwargs(with_readme_and_license):
+def test_get_license_expression():
+    assert get_license_expression("Apache License") == "Apache-2.0"
+    assert get_license_expression(" GNU GENERAL PUBLIC LICENSE ") == "GPL-3.0-or-later"
+    assert get_license_expression("") == None
+
+
+def test_cli_with_license(with_license):
+    Path(with_license, "LICENSE").write_text("MIT License")
+    cli(name="name", author="Patrick Elmer", email="patrick@elmer.ws")
+    pyproject = Path("pyproject.toml").read_text()
+    assert 'license = "MIT"' in pyproject
+    assert 'license-files = ["LICENSE"]' in pyproject
+
+
+def test_cli_with_kwargs(capsys, with_readme_and_license):
     cli(
         name="name",
         author="Patrick Elmer",
@@ -100,6 +122,8 @@ def test_cli_with_kwargs(with_readme_and_license):
         description="docstring",
         homepage="https://github.com/PatrickElmer/magicli",
     )
+    out, _ = capsys.readouterr()
+    assert "Unknown license" in out
     assert (
         Path("pyproject.toml").read_text()
         == """\

@@ -31,6 +31,13 @@ def with_tempdir():
 
 
 @pytest.fixture
+def with_license():
+    directory, cwd = _setup(["LICENSE"])
+    yield directory.name
+    _teardown(directory, cwd)
+
+
+@pytest.fixture
 def with_readme_and_license():
     directory, cwd = _setup(["README.md", "LICENSE"])
     yield directory.name
