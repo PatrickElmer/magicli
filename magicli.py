@@ -349,6 +349,8 @@ def cli(name="", author="", email="", description="", homepage=""):
         license_content = Path("LICENSE").read_text(encoding="utf-8")
         if license_expression := get_license_expression(license_content):
             project.append(f'license = "{license_expression}"')
+        else:
+            print("Unknown license: Failed to add SPDX identifier to project.license")
         project.append('license-files = ["LICENSE"]')
 
     if description or (description := get_description(name)):

@@ -114,7 +114,7 @@ def test_cli_with_license(with_license):
     assert 'license-files = ["LICENSE"]' in pyproject
 
 
-def test_cli_with_kwargs(with_readme_and_license):
+def test_cli_with_kwargs(capsys, with_readme_and_license):
     cli(
         name="name",
         author="Patrick Elmer",
@@ -122,6 +122,8 @@ def test_cli_with_kwargs(with_readme_and_license):
         description="docstring",
         homepage="https://github.com/PatrickElmer/magicli",
     )
+    out, _ = capsys.readouterr()
+    assert "Unknown license" in out
     assert (
         Path("pyproject.toml").read_text()
         == """\
