@@ -103,7 +103,7 @@ def test_version(mocked, caplog):
         with pytest.raises(SystemExit) as error:
             magicli()
         assert error.value.code is None
-        assert caplog.records[0].message == "1.2.3"
+        assert caplog.messages[0] == "1.2.3"
 
     sys.argv = ["name", "-v"]
     with pytest.raises(SystemExit) as error:
@@ -118,4 +118,4 @@ def test_version_with_command(mocked, caplog):
     with pytest.raises(SystemExit) as error:
         magicli()
     assert error.value.code is None
-    assert caplog.records[0].message == "1.2.3"
+    assert caplog.messages[0] == "1.2.3"
