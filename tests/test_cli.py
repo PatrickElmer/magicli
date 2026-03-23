@@ -61,7 +61,6 @@ def test_empty_cli_name_failure(with_two_files):
 
 
 def test_with_git_repo(caplog, with_git):
-    caplog.set_level(logging.INFO)
     cli(name="_")
     out = caplog.messages[-1]
 
@@ -74,7 +73,6 @@ def test_with_git_repo(caplog, with_git):
 
 
 def test_without_git_repo(caplog, empty_directory):
-    caplog.set_level(logging.INFO)
     cli(name="_")
     out = caplog.messages[-1]
 
@@ -118,7 +116,6 @@ def test_cli_with_license(with_license):
 
 
 def test_cli_with_kwargs(caplog, with_readme_and_license):
-    caplog.set_level(logging.INFO)
     cli(
         name="name",
         author="Patrick Elmer",

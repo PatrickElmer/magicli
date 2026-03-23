@@ -42,7 +42,6 @@ def test_module_imported(mocked):
 
 @mock.patch("importlib.import_module", side_effect=module)
 def test_first_function_called(mocked, caplog):
-    caplog.set_level(logging.INFO)
     sys.argv = ["name"]
     magicli()
     mocked.assert_called_once_with("name")
@@ -51,7 +50,6 @@ def test_first_function_called(mocked, caplog):
 
 @mock.patch("importlib.import_module", side_effect=module)
 def test_command_called(mocked, caplog):
-    caplog.set_level(logging.INFO)
     sys.argv = ["name", "command"]
     magicli()
     mocked.assert_called_once_with("name")
@@ -95,7 +93,6 @@ def test_short_option_with_wrong_type(mocked):
 
 @mock.patch("importlib.import_module", side_effect=module_version)
 def test_version(mocked, caplog):
-    caplog.set_level(logging.INFO)
     for version in ["--version", "-V"]:
         sys.argv = ["name", version]
         with pytest.raises(SystemExit) as error:
@@ -111,7 +108,6 @@ def test_version(mocked, caplog):
 
 @mock.patch("importlib.import_module", side_effect=module_version)
 def test_version_with_command(mocked, caplog):
-    caplog.set_level(logging.INFO)
     sys.argv = ["name", "command", "-v"]
     with pytest.raises(SystemExit) as error:
         magicli()
