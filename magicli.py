@@ -6,11 +6,14 @@ line arguments based on function signatures.
 
 import importlib
 import inspect
+import logging
 import subprocess
 import sys
 from functools import partial
 from importlib import metadata
 from pathlib import Path
+
+logging.basicConfig(level="INFO", format="%(message)s")
 
 
 def magicli():
@@ -161,7 +164,7 @@ def check_for_version(argv, parameters, docstring, module):
         "-V": "-V, --version",
     }
     if (doc := args.get(argv[0])) and doc in docstring:
-        print(get_version(module))
+        logging.info(get_version(module))
         raise SystemExit
 
 
@@ -350,7 +353,9 @@ def cli(name="", author="", email="", description="", homepage=""):
         if license_expression := get_license_expression(license_content):
             project.append(f'license = "{license_expression}"')
         else:
-            print("Unknown license: Failed to add SPDX identifier to project.license")
+            logging.info(
+                "Unknown license: Failed to add SPDX identifier to project.license"
+            )
         project.append('license-files = ["LICENSE"]')
 
     if description or (description := get_description(name)):
@@ -370,6 +375,7 @@ def cli(name="", author="", email="", description="", homepage=""):
     )
 
     pyproject.write_text(format_blocks(blocks, sep="\n") + "\n", encoding="utf-8")
+    logging.info("pyproject.toml created! ✨")
 
     if Path(".git").exists():
         git_note = "You can specify the version with `git tag`"
@@ -377,4 +383,4 @@ def cli(name="", author="", email="", description="", homepage=""):
         git_note = (
             "Error: Not a git repo. Run `git init`. Specify version with `git tag`."
         )
-    print("pyproject.toml created! ✨", git_note, sep="\n")
+    logging.info(git_note)
