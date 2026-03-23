@@ -8,19 +8,15 @@ from fixtures import pyproject
 
 from magicli import magicli
 
-ANSWER = None
-
 
 def name():
     "-V, --version"
-    global ANSWER
-    ANSWER = 1
+    logging.info("name")
 
 
 def command():
     "-v, --version"
-    global ANSWER
-    ANSWER = 2
+    logging.info("command")
 
 
 def create_module(name, version=None, functions=None):
@@ -45,19 +41,21 @@ def test_module_imported(mocked):
 
 
 @mock.patch("importlib.import_module", side_effect=module)
-def test_first_function_called(mocked):
+def test_first_function_called(mocked, caplog):
+    caplog.set_level(logging.INFO)
     sys.argv = ["name"]
     magicli()
     mocked.assert_called_once_with("name")
-    assert ANSWER == 1
+    assert caplog.messages[0] == "name"
 
 
 @mock.patch("importlib.import_module", side_effect=module)
-def test_command_called(mocked):
+def test_command_called(mocked, caplog):
+    caplog.set_level(logging.INFO)
     sys.argv = ["name", "command"]
     magicli()
     mocked.assert_called_once_with("name")
-    assert ANSWER == 2
+    assert caplog.messages[0] == "command"
 
 
 @mock.patch("importlib.import_module", side_effect=module)
