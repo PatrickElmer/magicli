@@ -1,3 +1,4 @@
+import logging
 import sys
 from functools import partial
 from unittest import mock
@@ -95,13 +96,14 @@ def test_short_option_with_wrong_type(mocked):
 
 
 @mock.patch("importlib.import_module", side_effect=module_version)
-def test_version(mocked, capsys):
+def test_version(mocked, caplog):
+    caplog.set_level(logging.INFO)
     for version in ["--version", "-V"]:
         sys.argv = ["name", version]
         with pytest.raises(SystemExit) as error:
             magicli()
         assert error.value.code is None
-        assert capsys.readouterr()[0] == "1.2.3\n"
+        assert caplog.records[0].message == "1.2.3"
 
     sys.argv = ["name", "-v"]
     with pytest.raises(SystemExit) as error:
@@ -110,9 +112,10 @@ def test_version(mocked, capsys):
 
 
 @mock.patch("importlib.import_module", side_effect=module_version)
-def test_version_with_command(mocked, capsys):
+def test_version_with_command(mocked, caplog):
+    caplog.set_level(logging.INFO)
     sys.argv = ["name", "command", "-v"]
     with pytest.raises(SystemExit) as error:
         magicli()
     assert error.value.code is None
-    assert capsys.readouterr()[0] == "1.2.3\n"
+    assert caplog.records[0].message == "1.2.3"
