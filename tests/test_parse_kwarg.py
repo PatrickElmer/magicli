@@ -3,7 +3,7 @@ from inspect import Parameter, _ParameterKind
 
 import pytest
 
-from magicli import parse_argv, get_type, parse_kwarg
+from magicli import get_type, parse_argv, parse_kwarg
 
 PK = _ParameterKind.POSITIONAL_OR_KEYWORD
 
