@@ -306,6 +306,12 @@ def get_license_expression(content):
     }.get(content.split("\n")[0].strip())
 
 
+def detect_path(glob, extensions):
+    """Returns only a single path of a glob if it ends with one of the provided extensions."""
+    paths = [path for path in Path().glob(glob) if path.suffix in extensions]
+    return paths[0] if len(paths) == 1 else None
+
+
 def cli(name="", author="", email="", description="", homepage=""):
     """
     magiCLI✨
@@ -346,17 +352,15 @@ def cli(name="", author="", email="", description="", homepage=""):
     if authors:
         project.append(f"authors = [{{{', '.join(authors)}}}]")
 
-    if Path("README.md").exists():
-        project.append('readme = "README.md"')
+    if readme := detect_path("README*", {".md", ".rst", ".txt"}):
+        project.append(f'readme = "{readme.name}"')
 
-    if Path("LICENSE").exists():
-        license_content = Path("LICENSE").read_text(encoding="utf-8")
+    if license_file := detect_path("LICENSE*", {"", ".txt"}):
+        license_content = license_file.read_text(encoding="utf-8")
         if license_expression := get_license_expression(license_content):
             project.append(f'license = "{license_expression}"')
         else:
-            logging.info(
-                "Unknown license: Failed to add SPDX identifier to project.license"
-            )
+            logging.debug("Unknown license: %s", license_file.name)
         project.append('license-files = ["LICENSE"]')
 
     if description or (description := get_description(name)):
