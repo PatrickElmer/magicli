@@ -368,7 +368,7 @@ def cli(name="", author="", email="", description="", homepage=""):
             project.append(f'license = "{license_expression}"')
         else:
             logging.debug("Unknown license: %s", license_file.name)
-        project.append('license-files = ["LICENSE"]')
+        project.append(f'license-files = ["{license_file.name}"]')
 
     if description or (description := get_description(name)):
         project.append(f'description = "{description}"')
