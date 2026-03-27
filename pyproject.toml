@@ -27,4 +27,4 @@ disable = [
 ]
 
 [tool.pytest]
-log_level = "INFO"
+log_level = "DEBUG"
