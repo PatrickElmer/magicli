@@ -62,26 +62,12 @@ def test_empty_cli_name_failure(with_two_files):
 
 def test_with_git_repo(caplog, with_git):
     cli(name="_")
-    out = caplog.messages[-1]
-
-    without_git = (
-        "Error: Not a git repo. Run `git init`. Specify version with `git tag`."
-    )
-    with_git = "You can specify the version with `git tag`"
-    assert out.endswith(with_git)
-    assert without_git not in out
+    assert "Specify the version with `git tag`" in caplog.messages
 
 
 def test_without_git_repo(caplog, empty_directory):
     cli(name="_")
-    out = caplog.messages[-1]
-
-    without_git = (
-        "Error: Not a git repo. Run `git init`. Specify version with `git tag`."
-    )
-    with_git = "You can specify the version with `git tag`"
-    assert out.endswith(without_git)
-    assert with_git not in out
+    assert "Not a git repo. Run `git init`" in caplog.messages
 
 
 def test_get_output():
@@ -123,8 +109,7 @@ def test_cli_with_kwargs(caplog, with_readme_and_license):
         description="docstring",
         homepage="https://github.com/PatrickElmer/magicli",
     )
-    out = caplog.messages[0]
-    assert "Unknown license" in out
+    assert any(msg == "Unknown license: LICENSE" for msg in caplog.messages)
     assert (
         Path("pyproject.toml").read_text(encoding="utf-8")
         == """\
