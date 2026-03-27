@@ -338,8 +338,15 @@ def cli(name="", author="", email="", description="", homepage=""):
         raise SystemExit(1)
 
     name = name or get_project_name()
-    author = author or get_output("git config --get user.name")
-    email = email or get_output("git config --get user.email")
+
+    if Path(".git").exists():
+        author = author or get_output("git config --get user.name")
+        email = email or get_output("git config --get user.email")
+        if not get_output("git tag"):
+            logging.debug("Specify the version with `git tag`")
+    else:
+        logging.debug("Not a git repo. Run `git init`")
+
     authors = [f'{k}="{v}"' for k, v in {"name": author, "email": email}.items() if v]
 
     project = [
@@ -380,12 +387,4 @@ def cli(name="", author="", email="", description="", homepage=""):
     )
 
     pyproject.write_text(format_blocks(blocks, sep="\n") + "\n", encoding="utf-8")
-    logging.info("pyproject.toml created! ✨")
-
-    if Path(".git").exists():
-        git_note = "You can specify the version with `git tag`"
-    else:
-        git_note = (
-            "Error: Not a git repo. Run `git init`. Specify version with `git tag`."
-        )
-    logging.info(git_note)
+    logging.debug("Created pyproject.toml ✨")
