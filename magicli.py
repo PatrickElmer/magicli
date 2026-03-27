@@ -6,11 +6,15 @@ line arguments based on function signatures.
 
 import importlib
 import inspect
+import logging
+import os
 import subprocess
 import sys
 from functools import partial
 from importlib import metadata
 from pathlib import Path
+
+logging.basicConfig(level=os.getenv("MAGICLI_LOG_LEVEL", "DEBUG"), format="%(message)s")
 
 
 def magicli():
@@ -161,7 +165,7 @@ def check_for_version(argv, parameters, docstring, module):
         "-V": "-V, --version",
     }
     if (doc := args.get(argv[0])) and doc in docstring:
-        print(get_version(module))
+        logging.info(get_version(module))
         raise SystemExit
 
 
@@ -302,6 +306,12 @@ def get_license_expression(content):
     }.get(content.split("\n")[0].strip())
 
 
+def detect_path(glob, extensions):
+    """Returns only a single path of a glob if it ends with one of the provided extensions."""
+    paths = [path for path in Path().glob(glob) if path.suffix in extensions]
+    return paths[0] if len(paths) == 1 else None
+
+
 def cli(name="", author="", email="", description="", homepage=""):
     """
     magiCLI✨
@@ -328,8 +338,15 @@ def cli(name="", author="", email="", description="", homepage=""):
         raise SystemExit(1)
 
     name = name or get_project_name()
-    author = author or get_output("git config --get user.name")
-    email = email or get_output("git config --get user.email")
+
+    if Path(".git").exists():
+        author = author or get_output("git config --get user.name")
+        email = email or get_output("git config --get user.email")
+        if not get_output("git tag"):
+            logging.debug("Specify the version with `git tag`")
+    else:
+        logging.debug("Not a git repo. Run `git init`")
+
     authors = [f'{k}="{v}"' for k, v in {"name": author, "email": email}.items() if v]
 
     project = [
@@ -342,16 +359,16 @@ def cli(name="", author="", email="", description="", homepage=""):
     if authors:
         project.append(f"authors = [{{{', '.join(authors)}}}]")
 
-    if Path("README.md").exists():
-        project.append('readme = "README.md"')
+    if readme := detect_path("README*", {".md", ".rst", ".txt"}):
+        project.append(f'readme = "{readme.name}"')
 
-    if Path("LICENSE").exists():
-        license_content = Path("LICENSE").read_text(encoding="utf-8")
+    if license_file := detect_path("LICENSE*", {"", ".txt"}):
+        license_content = license_file.read_text(encoding="utf-8")
         if license_expression := get_license_expression(license_content):
             project.append(f'license = "{license_expression}"')
         else:
-            print("Unknown license: Failed to add SPDX identifier to project.license")
-        project.append('license-files = ["LICENSE"]')
+            logging.debug("Unknown license: %s", license_file.name)
+        project.append(f'license-files = ["{license_file.name}"]')
 
     if description or (description := get_description(name)):
         project.append(f'description = "{description}"')
@@ -370,11 +387,4 @@ def cli(name="", author="", email="", description="", homepage=""):
     )
 
     pyproject.write_text(format_blocks(blocks, sep="\n") + "\n", encoding="utf-8")
-
-    if Path(".git").exists():
-        git_note = "You can specify the version with `git tag`"
-    else:
-        git_note = (
-            "Error: Not a git repo. Run `git init`. Specify version with `git tag`."
-        )
-    print("pyproject.toml created! ✨", git_note, sep="\n")
+    logging.debug("Created pyproject.toml ✨")

@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from unittest import mock
 
@@ -34,7 +35,7 @@ def test_correct_name_input(with_two_files):
 
     path = Path("pyproject.toml")
     assert path.exists()
-    with path.open() as f:
+    with path.open(encoding="utf-8") as f:
         assert 'name = "two"' in f.read()
 
 
@@ -59,28 +60,14 @@ def test_empty_cli_name_failure(with_two_files):
     assert error.value.code == 1
 
 
-def test_with_git_repo(capsys, with_git):
+def test_with_git_repo(caplog, with_git):
     cli(name="_")
-    out, _ = capsys.readouterr()
-
-    without_git = (
-        "Error: Not a git repo. Run `git init`. Specify version with `git tag`.\n"
-    )
-    with_git = "You can specify the version with `git tag`\n"
-    assert out.endswith(with_git)
-    assert without_git not in out
+    assert "Specify the version with `git tag`" in caplog.messages
 
 
-def test_without_git_repo(capsys, empty_directory):
+def test_without_git_repo(caplog, empty_directory):
     cli(name="_")
-    out, _ = capsys.readouterr()
-
-    without_git = (
-        "Error: Not a git repo. Run `git init`. Specify version with `git tag`.\n"
-    )
-    with_git = "You can specify the version with `git tag`\n"
-    assert out.endswith(without_git)
-    assert with_git not in out
+    assert "Not a git repo. Run `git init`" in caplog.messages
 
 
 def test_get_output():
@@ -103,18 +90,18 @@ def test_get_description():
 def test_get_license_expression():
     assert get_license_expression("Apache License") == "Apache-2.0"
     assert get_license_expression(" GNU GENERAL PUBLIC LICENSE ") == "GPL-3.0-or-later"
-    assert get_license_expression("") == None
+    assert get_license_expression("") is None
 
 
 def test_cli_with_license(with_license):
-    Path(with_license, "LICENSE").write_text("MIT License")
+    Path(with_license, "LICENSE").write_text("MIT License", encoding="utf-8")
     cli(name="name", author="Patrick Elmer", email="patrick@elmer.ws")
-    pyproject = Path("pyproject.toml").read_text()
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
     assert 'license = "MIT"' in pyproject
     assert 'license-files = ["LICENSE"]' in pyproject
 
 
-def test_cli_with_kwargs(capsys, with_readme_and_license):
+def test_cli_with_kwargs(caplog, with_readme_and_license):
     cli(
         name="name",
         author="Patrick Elmer",
@@ -122,10 +109,9 @@ def test_cli_with_kwargs(capsys, with_readme_and_license):
         description="docstring",
         homepage="https://github.com/PatrickElmer/magicli",
     )
-    out, _ = capsys.readouterr()
-    assert "Unknown license" in out
+    assert any(msg == "Unknown license: LICENSE" for msg in caplog.messages)
     assert (
-        Path("pyproject.toml").read_text()
+        Path("pyproject.toml").read_text(encoding="utf-8")
         == """\
 [project]
 name = "name"

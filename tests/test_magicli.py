@@ -1,3 +1,4 @@
+import logging
 import sys
 from functools import partial
 from unittest import mock
@@ -7,19 +8,15 @@ from fixtures import pyproject
 
 from magicli import magicli
 
-ANSWER = None
-
 
 def name():
     "-V, --version"
-    global ANSWER
-    ANSWER = 1
+    logging.info("name")
 
 
 def command():
     "-v, --version"
-    global ANSWER
-    ANSWER = 2
+    logging.info("command")
 
 
 def create_module(name, version=None, functions=None):
@@ -44,19 +41,19 @@ def test_module_imported(mocked):
 
 
 @mock.patch("importlib.import_module", side_effect=module)
-def test_first_function_called(mocked):
+def test_first_function_called(mocked, caplog):
     sys.argv = ["name"]
     magicli()
     mocked.assert_called_once_with("name")
-    assert ANSWER == 1
+    assert caplog.messages[0] == "name"
 
 
 @mock.patch("importlib.import_module", side_effect=module)
-def test_command_called(mocked):
+def test_command_called(mocked, caplog):
     sys.argv = ["name", "command"]
     magicli()
     mocked.assert_called_once_with("name")
-    assert ANSWER == 2
+    assert caplog.messages[0] == "command"
 
 
 @mock.patch("importlib.import_module", side_effect=module)
@@ -95,13 +92,13 @@ def test_short_option_with_wrong_type(mocked):
 
 
 @mock.patch("importlib.import_module", side_effect=module_version)
-def test_version(mocked, capsys):
+def test_version(mocked, caplog):
     for version in ["--version", "-V"]:
         sys.argv = ["name", version]
         with pytest.raises(SystemExit) as error:
             magicli()
         assert error.value.code is None
-        assert capsys.readouterr()[0] == "1.2.3\n"
+        assert caplog.messages[0] == "1.2.3"
 
     sys.argv = ["name", "-v"]
     with pytest.raises(SystemExit) as error:
@@ -110,9 +107,9 @@ def test_version(mocked, capsys):
 
 
 @mock.patch("importlib.import_module", side_effect=module_version)
-def test_version_with_command(mocked, capsys):
+def test_version_with_command(mocked, caplog):
     sys.argv = ["name", "command", "-v"]
     with pytest.raises(SystemExit) as error:
         magicli()
     assert error.value.code is None
-    assert capsys.readouterr()[0] == "1.2.3\n"
+    assert caplog.messages[0] == "1.2.3"
