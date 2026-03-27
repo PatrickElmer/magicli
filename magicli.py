@@ -7,13 +7,14 @@ line arguments based on function signatures.
 import importlib
 import inspect
 import logging
+import os
 import subprocess
 import sys
 from functools import partial
 from importlib import metadata
 from pathlib import Path
 
-logging.basicConfig(level="INFO", format="%(message)s")
+logging.basicConfig(level=os.getenv("MAGICLI_LOG_LEVEL", "DEBUG"), format="%(message)s")
 
 
 def magicli():
