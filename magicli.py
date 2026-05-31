@@ -65,16 +65,17 @@ def call(function, argv, module=None, name=None):
     Converts arguments to function parameters and calls the function.
     Displays a help message if an exception occurs.
     """
+    docstring = inspect.getdoc(function) or ""
+    parameters = inspect.signature(function).parameters
+
+    check_for_version(argv, parameters, docstring, module)
+
     try:
-        docstring = inspect.getdoc(function) or ""
-        parameters = inspect.signature(function).parameters
-
-        check_for_version(argv, parameters, docstring, module)
-
         args, kwargs = parse_argv(argv, parameters, docstring)
-        function(*args, **kwargs)
-    except Exception:
+    except ParseArgvError:
         raise SystemExit(help_message(help_from_function, function, name))
+
+    function(*args, **kwargs)
 
 
 def parse_argv(argv, parameters, docstring):
@@ -89,7 +90,9 @@ def parse_argv(argv, parameters, docstring):
         elif key.startswith("-"):
             parse_short_options(key[1:], docstring, iter_argv, parameters, kwargs)
         else:
-            args.append(get_type(parameter_list[len(args)])(key))
+            if (index := len(args)) >= len(parameter_list):
+                raise ParseArgvError
+            args.append(get_type(parameter_list[index])(key))
 
     return args, kwargs
 
