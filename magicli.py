@@ -17,6 +17,10 @@ from pathlib import Path
 logging.basicConfig(level=os.getenv("MAGICLI_LOG_LEVEL", "DEBUG"), format="%(message)s")
 
 
+class ParseArgvError(Exception):
+    """Failure to parse argv into args and kwargs based on function parameters and docstring."""
+
+
 def magicli():
     """Parses command-line arguments and calls the appropriate function."""
     name = Path(sys.argv[0]).name
@@ -62,16 +66,17 @@ def call(function, argv, module=None, name=None):
     Converts arguments to function parameters and calls the function.
     Displays a help message if an exception occurs.
     """
+    docstring = inspect.getdoc(function) or ""
+    parameters = inspect.signature(function).parameters
+
+    check_for_version(argv, parameters, docstring, module)
+
     try:
-        docstring = inspect.getdoc(function) or ""
-        parameters = inspect.signature(function).parameters
-
-        check_for_version(argv, parameters, docstring, module)
-
         args, kwargs = parse_argv(argv, parameters, docstring)
-        function(*args, **kwargs)
-    except Exception:
-        raise SystemExit(help_message(help_from_function, function, name))
+    except ParseArgvError as exc:
+        raise SystemExit(help_message(help_from_function, function, name)) from exc
+
+    function(*args, **kwargs)
 
 
 def parse_argv(argv, parameters, docstring):
@@ -86,7 +91,9 @@ def parse_argv(argv, parameters, docstring):
         elif key.startswith("-"):
             parse_short_options(key[1:], docstring, iter_argv, parameters, kwargs)
         else:
-            args.append(get_type(parameter_list[len(args)])(key))
+            if (index := len(args)) >= len(parameter_list):
+                raise ParseArgvError
+            args.append(get_type(parameter_list[index])(key))
 
     return args, kwargs
 
@@ -222,8 +229,8 @@ def load_module(name):
     """Load module from name"""
     try:
         return importlib.import_module(name)
-    except ModuleNotFoundError:
-        raise SystemExit(f"{name}: command not found")
+    except ModuleNotFoundError as exc:
+        raise SystemExit(f"{name}: command not found") from exc
 
 
 def get_commands(module):
