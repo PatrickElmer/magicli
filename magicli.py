@@ -17,7 +17,8 @@ from pathlib import Path
 logging.basicConfig(level=os.getenv("MAGICLI_LOG_LEVEL", "DEBUG"), format="%(message)s")
 
 
-class ParseArgvError(Exception): ...
+class ParseArgvError(Exception):
+    """Failure to parse argv into args and kwargs based on function parameters and docstring."""
 
 
 def magicli():
@@ -72,8 +73,8 @@ def call(function, argv, module=None, name=None):
 
     try:
         args, kwargs = parse_argv(argv, parameters, docstring)
-    except ParseArgvError:
-        raise SystemExit(help_message(help_from_function, function, name))
+    except ParseArgvError as exc:
+        raise SystemExit(help_message(help_from_function, function, name)) from exc
 
     function(*args, **kwargs)
 
@@ -228,8 +229,8 @@ def load_module(name):
     """Load module from name"""
     try:
         return importlib.import_module(name)
-    except ModuleNotFoundError:
-        raise SystemExit(f"{name}: command not found")
+    except ModuleNotFoundError as exc:
+        raise SystemExit(f"{name}: command not found") from exc
 
 
 def get_commands(module):
