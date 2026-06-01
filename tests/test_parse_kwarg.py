@@ -3,7 +3,7 @@ from inspect import Parameter, _ParameterKind
 
 import pytest
 
-from magicli import get_type, parse_argv, parse_kwarg
+from magicli import get_type, parse_argv, parse_kwarg, ParseArgvError
 
 PK = _ParameterKind.POSITIONAL_OR_KEYWORD
 
@@ -44,6 +44,8 @@ def test_parse_argv():
         ["a"],
         {"kwarg": 2},
     )
+    with pytest.raises(ParseArgvError):
+        parse_argv([], parameters, docstring="")
 
 
 def test_parse_argv_with_underscore():
