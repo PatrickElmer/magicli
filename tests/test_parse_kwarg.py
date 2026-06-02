@@ -3,7 +3,7 @@ from inspect import Parameter, _ParameterKind
 
 import pytest
 
-from magicli import get_type, parse_argv, parse_kwarg
+from magicli import ParseArgvError, get_type, parse_argv, parse_kwarg
 
 PK = _ParameterKind.POSITIONAL_OR_KEYWORD
 
@@ -56,3 +56,9 @@ def test_parse_argv_with_underscore():
         ["a"],
         {"kwarg_1": 2},
     )
+
+
+def test_parse_argv_with_unknown_long_option():
+    parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
+    with pytest.raises(ParseArgvError):
+        parse_argv(["a", "--unknown=2"], parameters, docstring="")
