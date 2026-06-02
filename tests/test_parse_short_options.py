@@ -2,7 +2,7 @@ from inspect import Parameter, _ParameterKind
 
 import pytest
 
-from magicli import parse_short_options, short_to_long_option
+from magicli import ParseArgvError, parse_short_options, short_to_long_option
 
 
 @pytest.mark.parametrize(
@@ -41,7 +41,7 @@ def test_parse_short_options_failures():
         {"docstring": ""},
         {"short_options": "aa", "iter_argv": iter(["aa"])},
     ]:
-        with pytest.raises(SystemExit):
+        with pytest.raises(ParseArgvError):
             parse_short_options(**(_kwargs | args))
         _kwargs["kwargs"] = {}
 
@@ -68,5 +68,5 @@ def test_short_to_long_option(docstring):
     ],
 )
 def test_short_to_long_option_failures(docstring):
-    with pytest.raises(SystemExit):
+    with pytest.raises(ParseArgvError):
         short_to_long_option("a", docstring)

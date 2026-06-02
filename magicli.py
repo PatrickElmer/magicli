@@ -93,7 +93,9 @@ def parse_argv(argv, parameters, docstring):
         else:
             if (index := len(args)) >= len(parameter_list):
                 raise ParseArgvError
-            args.append(get_type(parameter_list[index])(key))
+            args.append(cast_value(key, get_type(parameter_list[index])))
+
+    check_all_args_present(len(args), parameter_list)
 
     check_all_args_present(len(args), parameter_list)
 
@@ -130,9 +132,25 @@ def parse_kwarg(key, argv, parameters):
             return key, not parameters[key].default
         if cast_to is type(None):
             return key, True
-        value = next(argv)
+        value = next_arg(argv)
 
-    return key, value if cast_to is str else cast_to(value)
+    return key, cast_value(value, cast_to)
+
+
+def next_arg(argv):
+    """Return the next command-line argument or raise a parser error."""
+    try:
+        return next(argv)
+    except StopIteration as exc:
+        raise ParseArgvError from exc
+
+
+def cast_value(value, cast_to):
+    """Cast a command-line argument value or raise a parser error."""
+    try:
+        return value if cast_to is str else cast_to(value)
+    except (TypeError, ValueError) as exc:
+        raise ParseArgvError from exc
 
 
 def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs):
@@ -141,7 +159,7 @@ def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs)
         long = short_to_long_option(short, docstring)
 
         if long not in parameters:
-            raise SystemExit(f"--{long}: invalid long option")
+            raise ParseArgvError
 
         cast_to = get_type(parameters[long])
 
@@ -150,9 +168,9 @@ def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs)
         elif cast_to is type(None):
             kwargs[long] = True
         elif i == len(short_options) - 1:
-            kwargs[long] = cast_to(next(iter_argv))
+            kwargs[long] = cast_value(next_arg(iter_argv), cast_to)
         else:
-            raise SystemExit(f"-{short}: invalid type")
+            raise ParseArgvError
 
 
 def short_to_long_option(short, docstring):
@@ -164,7 +182,7 @@ def short_to_long_option(short, docstring):
             chars = [" ", "\n", "]"]
             indices = (i for char in chars if (i := docstring.find(char, start)) != -1)
             return docstring[start : min(indices, default=None)]
-    raise SystemExit(f"-{short}: invalid short option")
+    raise ParseArgvError
 
 
 def get_type(parameter):

@@ -64,3 +64,26 @@ def test_parse_argv_with_unknown_long_option():
     parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
     with pytest.raises(ParseArgvError):
         parse_argv(["a", "--unknown=2"], parameters, docstring="")
+
+
+def test_parse_argv_with_missing_required_arg_raises_parse_error():
+    parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
+    with pytest.raises(ParseArgvError):
+        parse_argv([], parameters, docstring="")
+
+
+def test_parse_argv_with_unknown_long_option_raises_parse_error():
+    parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
+    with pytest.raises(ParseArgvError):
+        parse_argv(["a", "--unknown=2"], parameters, docstring="")
+
+
+def test_parse_argv_with_missing_long_option_value_raises_parse_error():
+    parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
+    with pytest.raises(ParseArgvError):
+        parse_argv(["a", "--kwarg"], parameters, docstring="")
+
+
+def test_parse_argv_with_invalid_type_raises_parse_error():
+    with pytest.raises(ParseArgvError):
+        parse_argv(["not-an-int"], {"arg": Parameter("arg", PK, annotation=int)}, "")
