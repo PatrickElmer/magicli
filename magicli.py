@@ -73,8 +73,8 @@ def call(function, argv, module=None, name=None):
 
     try:
         args, kwargs = parse_argv(argv, parameters, docstring)
-    except ParseArgvError as exc:
-        raise SystemExit(help_message(help_from_function, function, name)) from exc
+    except ParseArgvError:
+        raise SystemExit(help_message(help_from_function, function, name))
 
     function(*args, **kwargs)
 
@@ -95,7 +95,20 @@ def parse_argv(argv, parameters, docstring):
                 raise ParseArgvError
             args.append(get_type(parameter_list[index])(key))
 
+    check_all_args_present(len(args), parameter_list)
+
     return args, kwargs
+
+
+def check_all_args_present(len_args, parameter_list):
+    """
+    If the first keyword argument does not have a default value,
+    a positional argument is missing and an error is raised.
+    """
+    if len_args < len(parameter_list):
+        parameter = parameter_list[len_args]
+        if parameter.default is parameter.empty:
+            raise ParseArgvError
 
 
 def parse_kwarg(key, argv, parameters):

@@ -44,6 +44,8 @@ def test_parse_argv():
         ["a"],
         {"kwarg": 2},
     )
+    with pytest.raises(ParseArgvError):
+        parse_argv([], parameters, docstring="")
 
 
 def test_parse_argv_with_underscore():
