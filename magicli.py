@@ -119,7 +119,11 @@ def parse_kwarg(key, argv, parameters):
     """
     key, value = key.split("=", 1) if "=" in key else (key, None)
     key = key.replace("-", "_")
-    cast_to = get_type(parameters.get(key))
+
+    if key not in parameters:
+        raise ParseArgvError
+
+    cast_to = get_type(parameters[key])
 
     if value is None:
         if cast_to is bool:
