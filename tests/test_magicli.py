@@ -103,7 +103,7 @@ def test_version(mocked, caplog):
     sys.argv = ["name", "-v"]
     with pytest.raises(SystemExit) as error:
         magicli()
-    assert error.value.code == "-V, --version"
+    assert error.value.code == "-v: invalid short option"
 
 
 @mock.patch("importlib.import_module", side_effect=module_version)

@@ -73,8 +73,12 @@ def call(function, argv, module=None, name=None):
 
     try:
         args, kwargs = parse_argv(argv, parameters, docstring)
-    except ParseArgvError:
-        raise SystemExit(help_message(help_from_function, function, name))
+    except ParseArgvError as exc:
+        raise SystemExit(
+            exc.args[0]
+            if exc.args
+            else help_message(help_from_function, function, name)
+        )
 
     function(*args, **kwargs)
 
@@ -182,7 +186,7 @@ def short_to_long_option(short, docstring):
             chars = [" ", "\n", "]"]
             indices = (i for char in chars if (i := docstring.find(char, start)) != -1)
             return docstring[start : min(indices, default=None)]
-    raise ParseArgvError
+    raise ParseArgvError(f"-{short}: invalid short option")
 
 
 def get_type(parameter):
