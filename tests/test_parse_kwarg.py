@@ -44,8 +44,6 @@ def test_parse_argv():
         ["a"],
         {"kwarg": 2},
     )
-    with pytest.raises(ParseArgvError):
-        parse_argv([], parameters, docstring="")
 
 
 def test_parse_argv_with_underscore():
@@ -60,28 +58,18 @@ def test_parse_argv_with_underscore():
     )
 
 
-def test_parse_argv_with_unknown_long_option():
+@pytest.mark.parametrize(
+    "command",
+    [
+        ["a", "--unknown=2"],  # unknown long option
+        ["a", "--kwarg"],      # missing long option value
+        [],
+    ],
+)
+def test_parse_argv_errors(command):
     parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
     with pytest.raises(ParseArgvError):
-        parse_argv(["a", "--unknown=2"], parameters, docstring="")
-
-
-def test_parse_argv_with_missing_required_arg_raises_parse_error():
-    parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
-    with pytest.raises(ParseArgvError):
-        parse_argv([], parameters, docstring="")
-
-
-def test_parse_argv_with_unknown_long_option_raises_parse_error():
-    parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
-    with pytest.raises(ParseArgvError):
-        parse_argv(["a", "--unknown=2"], parameters, docstring="")
-
-
-def test_parse_argv_with_missing_long_option_value_raises_parse_error():
-    parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
-    with pytest.raises(ParseArgvError):
-        parse_argv(["a", "--kwarg"], parameters, docstring="")
+        parse_argv(command, parameters, docstring="")
 
 
 def test_parse_argv_with_invalid_type_raises_parse_error():
