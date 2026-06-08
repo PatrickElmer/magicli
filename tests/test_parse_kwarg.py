@@ -72,6 +72,19 @@ def test_parse_argv_errors(command):
         parse_argv(command, parameters, docstring="")
 
 
+@pytest.mark.parametrize(
+    ("command", "result"),
+    [
+        (["--kwarg", "''"], "''"),
+        (["--kwarg="], ""),
+    ],
+)
+def test_parse_argv_empty_kwarg(command, result):
+    parameters = inspect.signature(lambda kwarg="1": None).parameters
+    res = parse_argv(command, parameters, docstring="")
+    assert res == ([], {'kwarg': result})
+
+
 def test_parse_argv_with_invalid_type_raises_parse_error():
     with pytest.raises(ParseArgvError):
         parse_argv(["not-an-int"], {"arg": Parameter("arg", PK, annotation=int)}, "")
