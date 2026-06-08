@@ -62,7 +62,7 @@ def test_parse_argv_with_underscore():
     "command",
     [
         ["a", "--unknown=2"],  # unknown long option
-        ["a", "--kwarg"],      # missing long option value
+        ["a", "--kwarg"],  # missing long option value
         [],
     ],
 )
