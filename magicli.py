@@ -101,8 +101,6 @@ def parse_argv(argv, parameters, docstring):
 
     check_all_args_present(len(args), parameter_list)
 
-    check_all_args_present(len(args), parameter_list)
-
     return args, kwargs
 
 
