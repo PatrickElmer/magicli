@@ -29,21 +29,21 @@ def test_parse_short_options(default, result):
 
 
 def test_parse_short_options_failures():
-    _kwargs = {
+    kwargs = {
         "short_options": "a",
         "docstring": "-a, --abc",
         "iter_argv": iter(["b"]),
         "parameters": {"abc": Parameter("abc", _ParameterKind.KEYWORD_ONLY)},
         "kwargs": {},
     }
-    for args in [
-        {"parameters": {}},
-        {"docstring": ""},
-        {"short_options": "aa", "iter_argv": iter(["aa"])},
+    for args, err in [
+        ({"parameters": {}}, ("--abc: invalid long option",)),
+        ({"docstring": ""}, ("-a: invalid short option",)),
+        ({"short_options": "aa", "iter_argv": iter(["aa"])}, ("-a: invalid type",)),
     ]:
-        with pytest.raises(ParseArgvError):
-            parse_short_options(**(_kwargs | args))
-        _kwargs["kwargs"] = {}
+        with pytest.raises(ParseArgvError) as error:
+            parse_short_options(**(kwargs | args))
+        assert error.value.args == err
 
 
 @pytest.mark.parametrize(

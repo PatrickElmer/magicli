@@ -163,7 +163,7 @@ def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs)
         long = short_to_long_option(short, docstring)
 
         if long not in parameters:
-            raise ParseArgvError
+            raise ParseArgvError(f"--{long}: invalid long option")
 
         cast_to = get_type(parameters[long])
 
@@ -174,7 +174,7 @@ def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs)
         elif i == len(short_options) - 1:
             kwargs[long] = cast_value(next_arg(iter_argv), cast_to)
         else:
-            raise ParseArgvError
+            raise ParseArgvError(f"-{short}: invalid type")
 
 
 def short_to_long_option(short, docstring):
