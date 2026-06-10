@@ -146,7 +146,7 @@ def next_arg(argv):
     try:
         return next(argv)
     except StopIteration:
-        raise ParseArgvError(f"error: missing option value")
+        raise ParseArgvError("error: missing option value")
 
 
 def cast_value(value, cast_to):
