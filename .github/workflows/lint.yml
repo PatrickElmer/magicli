@@ -1,7 +1,7 @@
 name: Lint
 
 on:
-  dispatch_event:
+  workflow_dispatch:
   pull_request:
     paths:
       - magicli.py
