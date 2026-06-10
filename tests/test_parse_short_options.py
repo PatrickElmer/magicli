@@ -68,5 +68,6 @@ def test_short_to_long_option(docstring):
     ],
 )
 def test_short_to_long_option_failures(docstring):
-    with pytest.raises(ParseArgvError):
+    with pytest.raises(ParseArgvError) as error:
         short_to_long_option("a", docstring)
+    assert error.value.args[0] == '-a: invalid short option'

@@ -59,8 +59,9 @@ def test_command_called(mocked, caplog):
 @mock.patch("importlib.import_module", side_effect=module)
 def test_wrong_command_not_called(mocked):
     sys.argv = ["name", "wrong_command"]
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as error:
         magicli()
+    assert error.value.code.startswith("wrong_command: unknown command")
 
 
 @mock.patch("importlib.import_module", side_effect=module_empty)
@@ -87,8 +88,9 @@ def test_module_is_magicli(pyproject):
 @mock.patch("importlib.import_module", side_effect=module)
 def test_short_option_with_wrong_type(mocked):
     sys.argv = ["name", "-ab"]
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as error:
         magicli()
+    assert error.value.code.startswith("-a: invalid short option")
 
 
 @mock.patch("importlib.import_module", side_effect=module_version)

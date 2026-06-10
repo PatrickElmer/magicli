@@ -59,17 +59,18 @@ def test_parse_argv_with_underscore():
 
 
 @pytest.mark.parametrize(
-    "command",
+    ("command", "error_message"),
     [
-        ["a", "--unknown=2"],  # unknown long option
-        ["a", "--kwarg"],  # missing long option value
-        [],
+        (["a", "--unknown=2"], "--unknown: unknown long option"),
+        (["a", "--kwarg"], "error: missing option value"),
+        ([], "arg: positional argument missing"),
     ],
 )
-def test_parse_argv_errors(command):
+def test_parse_argv_errors(command, error_message):
     parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
-    with pytest.raises(ParseArgvError):
+    with pytest.raises(ParseArgvError) as error:
         parse_argv(command, parameters, docstring="")
+    assert error.value.args[0] == error_message
 
 
 @pytest.mark.parametrize(
@@ -86,5 +87,6 @@ def test_parse_argv_empty_kwarg(command, result):
 
 
 def test_parse_argv_with_invalid_type_raises_parse_error():
-    with pytest.raises(ParseArgvError):
+    with pytest.raises(ParseArgvError) as error:
         parse_argv(["not-an-int"], {"arg": Parameter("arg", PK, annotation=int)}, "")
+    assert error.value.args[0].startswith("invalid literal for int() with base 10: 'not-an-int'")
