@@ -73,8 +73,10 @@ def call(function, argv, module=None, name=None):
 
     try:
         args, kwargs = parse_argv(argv, parameters, docstring)
-    except ParseArgvError:
-        raise SystemExit(help_message(help_from_function, function, name))
+    except ParseArgvError as exc:
+        message = exc.args[0] + "\n\n" if exc.args else ""
+        message += help_message(help_from_function, function, name)
+        raise SystemExit(message)
 
     function(*args, **kwargs)
 
@@ -92,8 +94,8 @@ def parse_argv(argv, parameters, docstring):
             parse_short_options(key[1:], docstring, iter_argv, parameters, kwargs)
         else:
             if (index := len(args)) >= len(parameter_list):
-                raise ParseArgvError
-            args.append(get_type(parameter_list[index])(key))
+                raise ParseArgvError(f"{key}: unknown command")
+            args.append(cast_value(key, get_type(parameter_list[index])))
 
     check_all_args_present(len(args), parameter_list)
 
@@ -108,7 +110,9 @@ def check_all_args_present(len_args, parameter_list):
     if len_args < len(parameter_list):
         parameter = parameter_list[len_args]
         if parameter.default is parameter.empty:
-            raise ParseArgvError
+            raise ParseArgvError(
+                f"{parameter_list[len_args].name}: positional argument missing"
+            )
 
 
 def parse_kwarg(key, argv, parameters):
@@ -121,7 +125,7 @@ def parse_kwarg(key, argv, parameters):
     key = key.replace("-", "_")
 
     if key not in parameters:
-        raise ParseArgvError
+        raise ParseArgvError(f"--{key}: unknown long option")
 
     cast_to = get_type(parameters[key])
 
@@ -130,9 +134,25 @@ def parse_kwarg(key, argv, parameters):
             return key, not parameters[key].default
         if cast_to is type(None):
             return key, True
-        value = next(argv)
+        value = next_arg(argv)
 
-    return key, value if cast_to is str else cast_to(value)
+    return key, cast_value(value, cast_to)
+
+
+def next_arg(argv):
+    """Return the next command-line argument or raise a parser error."""
+    try:
+        return next(argv)
+    except StopIteration:
+        raise ParseArgvError("error: missing option value")
+
+
+def cast_value(value, cast_to):
+    """Cast a command-line argument value or raise a parser error."""
+    try:
+        return value if cast_to is str else cast_to(value)
+    except ValueError as exc:
+        raise ParseArgvError(exc.args[0]) if exc.args else ParseArgvError from exc
 
 
 def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs):
@@ -141,7 +161,7 @@ def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs)
         long = short_to_long_option(short, docstring)
 
         if long not in parameters:
-            raise SystemExit(f"--{long}: invalid long option")
+            raise ParseArgvError(f"--{long}: invalid long option")
 
         cast_to = get_type(parameters[long])
 
@@ -150,9 +170,9 @@ def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs)
         elif cast_to is type(None):
             kwargs[long] = True
         elif i == len(short_options) - 1:
-            kwargs[long] = cast_to(next(iter_argv))
+            kwargs[long] = cast_value(next_arg(iter_argv), cast_to)
         else:
-            raise SystemExit(f"-{short}: invalid type")
+            raise ParseArgvError(f"-{short}: invalid type")
 
 
 def short_to_long_option(short, docstring):
@@ -164,7 +184,7 @@ def short_to_long_option(short, docstring):
             chars = [" ", "\n", "]"]
             indices = (i for char in chars if (i := docstring.find(char, start)) != -1)
             return docstring[start : min(indices, default=None)]
-    raise SystemExit(f"-{short}: invalid short option")
+    raise ParseArgvError(f"-{short}: invalid short option")
 
 
 def get_type(parameter):
