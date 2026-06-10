@@ -9,8 +9,8 @@ jobs:
   flake8:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8
         with:
           cache-dependency-glob: ""
       - run: uv run --with flake8 flake8 magicli.py --extend-ignore=E203,E501
@@ -18,8 +18,8 @@ jobs:
   pylint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8
         with:
           cache-dependency-glob: ""
       - run: uv run --with pylint pylint magicli.py
@@ -27,8 +27,8 @@ jobs:
   ruff:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8
         with:
           cache-dependency-glob: ""
       - run: uv run --with ruff ruff format magicli.py --diff
@@ -36,8 +36,8 @@ jobs:
   isort:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8
         with:
           cache-dependency-glob: ""
       - run: uv run --with isort isort --check --diff magicli.py
