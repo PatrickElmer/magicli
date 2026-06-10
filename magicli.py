@@ -74,11 +74,9 @@ def call(function, argv, module=None, name=None):
     try:
         args, kwargs = parse_argv(argv, parameters, docstring)
     except ParseArgvError as exc:
-        raise SystemExit(
-            exc.args[0]
-            if exc.args
-            else help_message(help_from_function, function, name)
-        )
+        message = exc.args[0] + "\n\n" if exc.args else ""
+        message += help_message(help_from_function, function, name)
+        raise SystemExit(message)
 
     function(*args, **kwargs)
 
