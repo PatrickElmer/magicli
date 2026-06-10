@@ -83,10 +83,10 @@ def test_parse_argv_errors(command, error_message):
 def test_parse_argv_empty_kwarg(command, result):
     parameters = inspect.signature(lambda kwarg="1": None).parameters
     res = parse_argv(command, parameters, docstring="")
-    assert res == ([], {'kwarg': result})
+    assert res == ([], {"kwarg": result})
 
 
 def test_parse_argv_with_invalid_type_raises_parse_error():
     with pytest.raises(ParseArgvError) as error:
         parse_argv(["not-an-int"], {"arg": Parameter("arg", PK, annotation=int)}, "")
-    assert error.value.args[0].startswith("invalid literal for int() with base 10: 'not-an-int'")
+    assert error.value.args[0] == "invalid literal for int() with base 10: 'not-an-int'"
