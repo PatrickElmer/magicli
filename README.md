@@ -2,6 +2,8 @@
 
 Automatically generates a CLI from functions of a module.
 
+<img src="docs/img/hello.svg"/>
+
 ## Install
 
 ```
