@@ -12,7 +12,7 @@ def hello(name, greeting="hello"):
 
 becomes
 
-<img src="docs/img/hello.svg"/>
+![hello world example](https://raw.githubusercontent.com/PatrickElmer/magicli/refs/heads/main/docs/img/hello.svg)
 
 with only 3 commands
 
