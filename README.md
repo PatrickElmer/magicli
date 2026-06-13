@@ -1,68 +1,62 @@
 # magiᴄʟɪ✨
 
-Automatically generates a CLI from functions of a module.
+Automatically turns a file into a CLI without any boilerplate by introspecting its functions.
 
-## Install
+**`hello world` example**
+
+```python
+# hello.py
+def hello(name, greeting="hello"):
+    print(greeting, name)
+```
+
+becomes
+
+<img src="docs/img/hello.svg"/>
+
+with only 3 commands
+
+1. `pip install magicli`
+1. `magicli`
+1. `pip install .`
+
+## Quick start
+
+### Install magicli
 
 ```
 pip install magicli
 ```
 
-## Get started
+### Setup your repository
 
-Simple usage example.
+Initialize repo
 
-```python
-# module.py
-def hello(name, times=1):
-    for _ in range(times):
-        print("hello", name)
+```bash
+git init
 ```
 
-Then run this in your terminal to initialize the CLI:
+Add version info (optional)
+
+```bash
+git tag 1.0.0
+```
+
+### Automatically create CLI
 
 ```bash
 magicli
 ```
 
-You are now able to install your package:
+_Make sure the name of your CLI, the module name and the name of the function have to same name._
+
+### Install your Python package
 
 ```bash
 pip install .
 ```
 
-And then call it:
-
-```bash
-$ hello world --times 2
-hello world
-hello world
-```
-
-### Define name of CLI in `pyproject.toml`
-
-The terminal command `magicli` adds the following to your `pyproject.toml`.
-
-```toml
-[project.scripts]
-hello = "magicli:magicli"
-```
-
-Important: Make sure the name of your CLI, the module name and the name of the function to be called are the same!
-
-```bash
-.
-├── hello.py
-└── pyproject.toml
-```
-
-You can now `pip install` your code and call it like this:
-
-```bash
-$ hello world --times 2
-hello world
-hello world
-```
+## Advanced use
 
 ### Using subcommands
 
