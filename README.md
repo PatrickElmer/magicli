@@ -9,10 +9,11 @@ automatically turns a file into a CLI by introspecting its functions.
 - no boilerplate
 - automatic help message
 - type casting included
+- supports sub-commands
 - complete `pyproject.toml` setup
 - ready for upload to `pypi`
 
-Create a CLI in 2 lines of code:
+Create a full CLI in only 2 lines of code:
 
 ```python
 # hello.py
@@ -23,6 +24,8 @@ def hello(name, greeting="hello"):
 calling `magicli` creates this CLI:
 
 ![hello world example](https://raw.githubusercontent.com/PatrickElmer/magicli/refs/heads/main/docs/img/hello.svg)
+
+(animated terminal created with [clivio](patrickelmer.github.io/clivio))
 
 ## Quick start
 
