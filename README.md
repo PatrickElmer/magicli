@@ -1,8 +1,19 @@
 # magiᴄʟɪ✨
 
-Automatically turns a file into a CLI without any boilerplate by introspecting its functions.
+```bash
+magicli
+```
 
-**`hello world` example**
+automatically turns a file into a CLI by introspecting its functions.
+
+- no boilerplate
+- automatic help message
+- type casting included
+- supports sub-commands
+- complete `pyproject.toml` setup
+- ready for upload to `pypi`
+
+Create a full CLI in only 2 lines of code:
 
 ```python
 # hello.py
@@ -10,15 +21,11 @@ def hello(name, greeting="hello"):
     print(greeting, name)
 ```
 
-becomes
+calling `magicli` creates this CLI:
 
 ![hello world example](https://raw.githubusercontent.com/PatrickElmer/magicli/refs/heads/main/docs/img/hello.svg)
 
-with only 3 commands
-
-1. `pip install magicli`
-1. `magicli`
-1. `pip install .`
+(animated terminal created with [clivio](patrickelmer.github.io/clivio))
 
 ## Quick start
 
@@ -56,12 +63,18 @@ _Make sure the name of your CLI, the module name and the name of the function ha
 pip install .
 ```
 
+or after uploading to `pypi`:
+
+```bash
+pip install <package_name>
+```
+
 ## Advanced use
 
 ### Using subcommands
 
 ```python
-# module.py
+# hello.py
 def hello(): ...
 
 def world(times=1):

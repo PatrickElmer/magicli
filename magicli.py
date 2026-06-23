@@ -1,5 +1,5 @@
 """
-Magicli generates command-line interfaces from Python modules
+`magicli` generates command-line interfaces from Python modules
 by introspecting its functions and automatically parsing command-
 line arguments based on function signatures.
 """
