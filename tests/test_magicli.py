@@ -33,6 +33,14 @@ module_version = partial(module, version="1.2.3")
 module_empty = partial(create_module, functions=None)
 
 
+def module_with_two_commands(name):
+    module = type(sys)(name)
+    setattr(module, "name", lambda: None)
+    setattr(module, "command", lambda: None)
+    setattr(module, "command_2", lambda: None)
+    return module
+
+
 @mock.patch("importlib.import_module", side_effect=module)
 def test_module_imported(mocked):
     sys.argv = ["name"]
@@ -115,3 +123,21 @@ def test_version_with_command(mocked, caplog):
         magicli()
     assert error.value.code is None
     assert caplog.messages[0] == "1.2.3"
+
+
+@mock.patch("importlib.import_module", side_effect=module_with_two_commands)
+def test_help_message_for_unknown_command(mocked):
+    sys.argv = ["name", "unknown_command"]
+    with pytest.raises(SystemExit) as error:
+        magicli()
+    assert error.value.code == """\
+unknown_command: unknown command
+
+usage:
+  <lambda>
+  name <command>
+
+commands:
+  command
+  command_2\
+"""
