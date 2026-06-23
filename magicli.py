@@ -75,9 +75,9 @@ def call(function, argv, module=None, name=None):
     try:
         args, kwargs = parse_argv(argv, parameters, docstring)
     except ParseArgvError as exc:
-        message = exc.args[0] + "\n\n" if exc.args else ""
-        message += help_message(help_from_function, function, name)
-        raise SystemExit(message)
+        raise SystemExit(
+            help_message(help_from_function, function, name, module, error=exc.args[0])
+        )
 
     function(*args, **kwargs)
 
@@ -214,16 +214,17 @@ def check_for_version(argv, parameters, docstring, module):
         raise SystemExit
 
 
-def help_message(help_function, obj, *args):
+def help_message(help_function, obj, *args, error=None):
     """
     Generates a help message for a function or module.
     Returns the object's docstring if available, otherwise generates the help message
     using the provided `help_function`.
     """
-    return inspect.getdoc(obj) or help_function(obj, *args) or 1
+    message = inspect.getdoc(obj) or help_function(obj, *args)
+    return (error + "\n\n" if error else "") + message if message else 1
 
 
-def help_from_function(function, name=None):
+def help_from_function(function, name=None, module=None):
     """
     Generates a help message for a function based on its signature.
     Displays the function name, required positional arguments, and
@@ -232,7 +233,11 @@ def help_from_function(function, name=None):
     message = [name] if name else []
     message.append(function.__name__)
     message.extend(map(format_kwarg, inspect.signature(function).parameters.values()))
-    return format_blocks([["usage:", " ".join(message)]])
+    blocks = [["usage:", " ".join(message)]]
+    if module and (commands := get_commands(module)):
+        blocks[0].append(f"{module.__name__} <command>")
+        blocks.append(["commands:", *commands])
+    return format_blocks(blocks)
 
 
 def format_kwarg(kwarg):
@@ -245,16 +250,11 @@ def help_from_module(module):
     Generates a help message for a module and lists available commands.
     Lists all public functions that are not excluded in `__all__`.
     """
-    blocks = []
-
-    if version := get_version(module):
-        blocks.append([f"{module.__name__} {version}"])
-
-    blocks.append(["usage:", f"{module.__name__} command"])
-
+    version = get_version(module)
+    blocks = [[f"{module.__name__} {version}"]] if version else []
     if commands := get_commands(module):
+        blocks.append(["usage:", f"{module.__name__} command"])
         blocks.append(["commands:", *commands])
-
     return format_blocks(blocks)
 
 
@@ -276,7 +276,9 @@ def get_commands(module):
     return [
         name
         for name, _ in inspect.getmembers(module, inspect.isfunction)
-        if not name.startswith("_") and name in module.__dict__.get("__all__", [name])
+        if not name.startswith("_")
+        and name in module.__dict__.get("__all__", [name])
+        and name != module.__name__
     ]
 
 
