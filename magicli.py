@@ -93,9 +93,9 @@ def parse_argv(argv, parameters, docstring):
             kwargs[left] = right
         elif key.startswith("-"):
             parse_short_options(key[1:], docstring, iter_argv, parameters, kwargs)
+        elif (index := len(args)) >= len(parameter_list):
+            raise ParseArgvError(f"{key}: unknown command")
         else:
-            if (index := len(args)) >= len(parameter_list):
-                raise ParseArgvError(f"{key}: unknown command")
             args.append(cast_value(key, get_type(parameter_list[index])))
 
     check_all_args_present(len(args), parameter_list)
@@ -125,14 +125,14 @@ def parse_kwarg(key, argv, parameters):
     key, value = key.split("=", 1) if "=" in key else (key, None)
     key = key.replace("-", "_")
 
-    if key not in parameters:
+    if (parameter := parameters.get(key)) is None:
         raise ParseArgvError(f"--{key}: unknown long option")
 
-    cast_to = get_type(parameters[key])
+    cast_to = get_type(parameter)
 
     if value is None:
         if cast_to is bool:
-            return key, not parameters[key].default
+            return key, not parameter.default
         if cast_to is type(None):
             return key, True
         value = next_arg(argv)
@@ -161,13 +161,13 @@ def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs)
     for i, short in enumerate(short_options):
         long = short_to_long_option(short, docstring)
 
-        if long not in parameters:
+        if (parameter := parameters.get(long)) is None:
             raise ParseArgvError(f"--{long}: invalid long option")
 
-        cast_to = get_type(parameters[long])
+        cast_to = get_type(parameter)
 
         if cast_to is bool:
-            kwargs[long] = not parameters[long].default
+            kwargs[long] = not parameter.default
         elif cast_to is type(None):
             kwargs[long] = True
         elif i == len(short_options) - 1:
