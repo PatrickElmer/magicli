@@ -141,3 +141,18 @@ commands:
   command
   command_2\
 """
+
+@mock.patch("importlib.import_module", side_effect=module)
+def test_help_kwarg_displays_help_message(mocked, caplog):
+    sys.argv = ["name", "--help"]
+    name.__doc__ = None
+    with pytest.raises(SystemExit):
+        magicli()
+    doc = """usage:
+  name
+  name <command>
+
+commands:
+  command"""
+    assert caplog.messages[0] != name.__doc__
+    assert caplog.messages[0] == doc

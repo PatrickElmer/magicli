@@ -70,7 +70,7 @@ def call(function, argv, module=None, name=None):
     docstring = inspect.getdoc(function) or ""
     parameters = inspect.signature(function).parameters
 
-    check_for_version(argv, parameters, docstring, module)
+    check_for_help_and_version(argv, parameters, docstring, module, function)
 
     try:
         args, kwargs = parse_argv(argv, parameters, docstring)
@@ -200,16 +200,19 @@ def get_type(parameter):
     return str
 
 
-def check_for_version(argv, parameters, docstring, module):
+def check_for_help_and_version(argv, parameters, docstring, module, function):
     """Displays version information if --version is specified in the docstring."""
-    if "version" in parameters or not module or len(argv) != 1:
+    if not module or len(argv) != 1:
         return
+    if argv[0] in ("--help", "-h") and "help" not in parameters:
+        logger.info(help_message(help_from_function, function, None, module))
+        raise SystemExit
     args = {
         "--version": "--version",
         "-v": "-v, --version",
         "-V": "-V, --version",
     }
-    if (doc := args.get(argv[0])) and doc in docstring:
+    if (doc := args.get(argv[0])) and doc in docstring and "version" not in parameters:
         logger.info(get_version(module))
         raise SystemExit
 
