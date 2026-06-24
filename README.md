@@ -23,7 +23,7 @@ def hello(name, greeting="hello"):
 
 calling `magicli` creates this CLI:
 
-![hello world example](https://raw.githubusercontent.com/PatrickElmer/magicli/refs/heads/main/docs/img/hello.svg)
+![hello world example](https://raw.githubusercontent.com/PatrickElmer/magicli/refs/heads/assets/img/hello.svg)
 
 (animated terminal created with [clivio](patrickelmer.github.io/clivio))
 
