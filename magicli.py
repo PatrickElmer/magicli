@@ -153,7 +153,7 @@ def cast_value(value, cast_to):
     try:
         return value if cast_to is str else cast_to(value)
     except ValueError as exc:
-        raise ParseArgvError(exc.args[0]) if exc.args else ParseArgvError from exc
+        raise ParseArgvError(exc.args[0]) if exc.args else ParseArgvError() from exc
 
 
 def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs):
