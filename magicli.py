@@ -42,7 +42,7 @@ def get_function_from_argv(argv, module, name):
     """Returns the module's function to call based on argv."""
     if function := is_command(argv, module):
         return partial(call, function, argv[1:], module, name)
-    if inspect.isfunction(function := module.__dict__.get(name)):
+    if inspect.isfunction(function := getattr(module, name, None)):
         return partial(call, function, argv, module)
     return None
 
@@ -55,8 +55,8 @@ def is_command(argv, module):
     if (
         argv
         and not (command := argv[0].replace("-", "_")).startswith("_")
-        and command in module.__dict__.get("__all__", [command])
-        and inspect.isfunction(function := module.__dict__.get(command))
+        and command in getattr(module, "__all__", [command])
+        and inspect.isfunction(function := getattr(module, command, None))
     ):
         return function
     return None
@@ -280,7 +280,7 @@ def get_commands(module):
         name
         for name, _ in inspect.getmembers(module, inspect.isfunction)
         if not name.startswith("_")
-        and name in module.__dict__.get("__all__", [name])
+        and name in getattr(module, "__all__", [name])
         and name != module.__name__
     ]
 
@@ -290,7 +290,7 @@ def get_version(module):
     try:
         return metadata.version(module.__name__)
     except metadata.PackageNotFoundError:
-        return module.__dict__.get("__version__")
+        return getattr(module, "__version__", None)
 
 
 def get_project_name():
