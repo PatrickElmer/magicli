@@ -112,7 +112,7 @@ def check_all_args_present(len_args, parameter_list):
         parameter = parameter_list[len_args]
         if parameter.default is parameter.empty:
             raise ParseArgvError(
-                f"{parameter_list[len_args].name}: positional argument missing"
+                f"{parameter.name}: positional argument missing"
             )
 
 
