@@ -173,7 +173,7 @@ def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs)
         elif i == len(short_options) - 1:
             kwargs[long] = cast_value(next_arg(iter_argv), cast_to)
         else:
-            raise ParseArgvError(f"-{short}: invalid type")
+            raise ParseArgvError(f"-{short}: expected boolean")
 
 
 def short_to_long_option(short, docstring):

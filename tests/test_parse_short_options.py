@@ -39,7 +39,7 @@ def test_parse_short_options_failures():
     for args, err in [
         ({"parameters": {}}, ("--abc: invalid long option",)),
         ({"docstring": ""}, ("-a: invalid short option",)),
-        ({"short_options": "aa", "iter_argv": iter(["aa"])}, ("-a: invalid type",)),
+        ({"short_options": "aa", "iter_argv": iter(["aa"])}, ("-a: expected boolean",)),
     ]:
         with pytest.raises(ParseArgvError) as error:
             parse_short_options(**(kwargs | args))
