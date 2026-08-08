@@ -3,7 +3,7 @@ from inspect import Parameter, _ParameterKind
 
 import pytest
 
-from magicli import ParseArgvError, get_type, parse_argv, parse_kwarg
+from magicli import ParseArgvError, cast_value, get_type, parse_argv, parse_kwarg
 
 PK = _ParameterKind.POSITIONAL_OR_KEYWORD
 
@@ -32,6 +32,12 @@ def test_get_type():
     assert get_type(Parameter("a", PK, annotation=int)) is int
     assert get_type(Parameter("b", PK, default=1)) is int
     assert get_type(Parameter("c", PK)) is str
+
+
+def test_cast_value_error():
+    with pytest.raises(ParseArgvError) as exc:
+        cast_value(1, get_type(Parameter("a", PK, annotation=int | str)))
+    assert exc.value.args[0] == "int | str: invalid type"
 
 
 def test_parse_argv():

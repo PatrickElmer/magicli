@@ -154,7 +154,7 @@ def cast_value(value, cast_to):
         return value if cast_to is str else cast_to(value)
     except ValueError as exc:
         raise ParseArgvError(exc.args[0]) if exc.args else ParseArgvError() from exc
-    except TypeError as exc:
+    except TypeError:
         raise ParseArgvError(f"{cast_to}: invalid type")
 
 
