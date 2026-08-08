@@ -111,9 +111,7 @@ def check_all_args_present(len_args, parameter_list):
     if len_args < len(parameter_list):
         parameter = parameter_list[len_args]
         if parameter.default is parameter.empty:
-            raise ParseArgvError(
-                f"{parameter.name}: positional argument missing"
-            )
+            raise ParseArgvError(f"{parameter.name}: positional argument missing")
 
 
 def parse_kwarg(key, argv, parameters):
@@ -154,6 +152,8 @@ def cast_value(value, cast_to):
         return value if cast_to is str else cast_to(value)
     except ValueError as exc:
         raise ParseArgvError(exc.args[0]) if exc.args else ParseArgvError() from exc
+    except TypeError:
+        raise ParseArgvError(f"{cast_to}: invalid type")
 
 
 def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs):
