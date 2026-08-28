@@ -98,22 +98,19 @@ def parse_argv(argv, parameters, docstring):
         else:
             args.append(cast_value(key, get_type(parameter_list[index])))
 
-    check_all_args_present(len(args), parameter_list)
+    check_all_args_present(args, kwargs, parameter_list)
 
     return args, kwargs
 
 
-def check_all_args_present(len_args, parameter_list):
+def check_all_args_present(args, kwargs, parameter_list):
     """
-    If the first keyword argument does not have a default value,
-    a positional argument is missing and an error is raised.
+    Raises an error for the first parameter without a default value that was
+    passed neither as a positional nor as a keyword argument.
     """
-    if len_args < len(parameter_list):
-        parameter = parameter_list[len_args]
-        if parameter.default is parameter.empty:
-            raise ParseArgvError(
-                f"{parameter.name}: positional argument missing"
-            )
+    for parameter in parameter_list[len(args) :]:
+        if parameter.default is parameter.empty and parameter.name not in kwargs:
+            raise ParseArgvError(f"{parameter.name}: positional argument missing")
 
 
 def parse_kwarg(key, argv, parameters):

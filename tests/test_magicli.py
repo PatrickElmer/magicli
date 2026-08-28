@@ -41,6 +41,17 @@ def module_with_two_commands(name):
     return module
 
 
+def module_with_required_arguments(name):
+    module = type(sys)(name)
+
+    def entry_point(a, b):
+        logging.info("%s %s", a, b)
+
+    entry_point.__module__ = name
+    setattr(module, name, entry_point)
+    return module
+
+
 @mock.patch("importlib.import_module", side_effect=module)
 def test_module_imported(mocked):
     sys.argv = ["name"]
@@ -70,6 +81,28 @@ def test_wrong_command_not_called(mocked):
     with pytest.raises(SystemExit) as error:
         magicli()
     assert error.value.code.startswith("wrong_command: unknown command")
+
+
+@mock.patch("importlib.import_module", side_effect=module_with_required_arguments)
+def test_required_arguments_as_options(mocked, caplog):
+    sys.argv = ["name", "--a", "1", "--b", "2"]
+    magicli()
+    assert caplog.messages[0] == "1 2"
+
+
+@mock.patch("importlib.import_module", side_effect=module_with_required_arguments)
+def test_required_arguments_mixed(mocked, caplog):
+    sys.argv = ["name", "1", "--b", "2"]
+    magicli()
+    assert caplog.messages[0] == "1 2"
+
+
+@mock.patch("importlib.import_module", side_effect=module_with_required_arguments)
+def test_missing_required_argument(mocked):
+    sys.argv = ["name", "--b", "2"]
+    with pytest.raises(SystemExit) as error:
+        magicli()
+    assert error.value.code.startswith("a: positional argument missing")
 
 
 @mock.patch("importlib.import_module", side_effect=module_empty)
