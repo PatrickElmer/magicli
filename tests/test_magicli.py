@@ -24,6 +24,7 @@ def create_module(name, version=None, functions=None):
     module.__doc__ = "docstring"
     module.__version__ = version
     for function in functions or []:
+        function.__module__ = name
         setattr(module, function.__name__, function)
     return module
 
@@ -35,9 +36,10 @@ module_empty = partial(create_module, functions=None)
 
 def module_with_two_commands(name):
     module = type(sys)(name)
-    setattr(module, "name", lambda: None)
-    setattr(module, "command", lambda: None)
-    setattr(module, "command_2", lambda: None)
+    for command in ["name", "command", "command_2"]:
+        function = lambda: None
+        function.__module__ = name
+        setattr(module, command, function)
     return module
 
 
