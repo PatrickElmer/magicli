@@ -4,6 +4,7 @@ by introspecting its functions and automatically parsing command-
 line arguments based on function signatures.
 """
 
+import ast
 import importlib
 import inspect
 import logging
@@ -333,12 +334,11 @@ def get_homepage(url=None):
 
 def get_description(name):
     """Return the first paragraph of a module's docstring if available."""
-    try:
-        module = importlib.import_module(name)
-    except ModuleNotFoundError:
-        return None
-    doc = (module.__doc__ or "").split("\n\n")[0]
-    return " ".join(stripped for line in doc.splitlines() if (stripped := line.strip()))
+    for path in (Path(f"{name}.py"), Path(name, "__init__.py"), Path("src", name, "__init__.py")):
+        if path.is_file():
+            doc = ast.get_docstring(ast.parse(path.read_text(encoding="utf-8"))) or ""
+            return " ".join(doc.split("\n\n")[0].split()) or None
+    return None
 
 
 def get_license_expression(content):
