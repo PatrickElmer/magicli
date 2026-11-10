@@ -25,7 +25,7 @@ calling `magicli` creates this CLI:
 
 ![hello world example](https://raw.githubusercontent.com/PatrickElmer/magicli/refs/heads/assets/img/hello.svg)
 
-(animated terminal created with [clivio](patrickelmer.github.io/clivio))
+(animated terminal created with [clivio](https://patrickelmer.github.io/clivio))
 
 ## Quick start
 
@@ -55,7 +55,7 @@ git tag 1.0.0
 magicli
 ```
 
-_Make sure the name of your CLI, the module name and the name of the function have to same name._
+_Make sure the name of your CLI, the module name and the name of the function have the same name._
 
 ### Install your Python package
 
@@ -92,7 +92,7 @@ hello world
 
 By default, the docstring of the function will be displayed.
 
-If no docstring is specified, an error message will be printed.
+If no docstring is specified, a usage message is printed.
 
 ## Development
 
