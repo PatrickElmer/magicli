@@ -9,6 +9,7 @@ magicli = "magicli:magicli"
 name = "magicli"
 authors = [{name = "Patrick Elmer", email = "patrick@elmer.ws"}]
 readme = "README.md"
+requires-python = ">=3.10"
 description = "Automatically generates a CLI from functions."
 dynamic = ["version"]
 license = "GPL-3.0-or-later"
