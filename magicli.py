@@ -15,7 +15,6 @@ from functools import partial
 from importlib import metadata
 from pathlib import Path
 
-logging.basicConfig(level=os.getenv("MAGICLI_LOG_LEVEL", "DEBUG"), format="%(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -25,6 +24,7 @@ class ParseArgvError(Exception):
 
 def magicli():
     """Parses command-line arguments and calls the appropriate function."""
+    logging.basicConfig(level=os.getenv("MAGICLI_LOG_LEVEL", "INFO"), format="%(message)s")
     name = Path(sys.argv[0]).name
     argv = sys.argv[1:]
 
