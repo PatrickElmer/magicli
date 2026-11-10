@@ -184,7 +184,7 @@ def short_to_long_option(short, docstring):
         if len(docstring) - start > 1:
             chars = [" ", "\n", "]"]
             indices = (i for char in chars if (i := docstring.find(char, start)) != -1)
-            return docstring[start : min(indices, default=None)]
+            return docstring[start : min(indices, default=None)].replace("-", "_")
     raise ParseArgvError(f"-{short}: invalid short option")
 
 
