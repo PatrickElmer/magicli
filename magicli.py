@@ -68,7 +68,7 @@ def call(function, argv, module=None, name=None):
     Displays a help message if an exception occurs.
     """
     docstring = inspect.getdoc(function) or ""
-    parameters = inspect.signature(function).parameters
+    parameters = inspect.signature(function, eval=True).parameters
 
     check_for_help_and_version(argv, parameters, docstring, module, function)
 
@@ -152,7 +152,7 @@ def cast_value(value, cast_to):
     """Cast a command-line argument value or raise a parser error."""
     try:
         return value if cast_to is str else cast_to(value)
-    except ValueError as exc:
+    except (ValueError, TypeError) as exc:
         raise ParseArgvError(exc.args[0]) if exc.args else ParseArgvError() from exc
 
 
