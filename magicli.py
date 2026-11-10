@@ -31,7 +31,7 @@ def magicli():
     if name == "magicli":
         raise SystemExit(call(cli, argv, sys.modules["magicli"]))
 
-    module = load_module(name)
+    module = load_module(name.replace("-", "_"))
 
     if function := get_function_from_argv(argv, module, name.replace("-", "_")):
         function()
