@@ -15,7 +15,7 @@ license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "pytest-cov"]
 
 [project.urls]
 Home = "https://github.com/PatrickElmer/magicli"
