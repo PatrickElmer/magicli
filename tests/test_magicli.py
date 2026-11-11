@@ -1,4 +1,3 @@
-import logging
 import sys
 from functools import partial
 from unittest import mock
@@ -11,12 +10,12 @@ from magicli import magicli
 
 def name():
     "-V, --version"
-    logging.info("name")
+    print("name")
 
 
 def command():
     "-v, --version"
-    logging.info("command")
+    print("command")
 
 
 def create_module(name, version=None, functions=None):
@@ -49,19 +48,19 @@ def test_module_imported(mocked):
 
 
 @mock.patch("importlib.import_module", side_effect=module)
-def test_first_function_called(mocked, caplog):
+def test_first_function_called(mocked, capsys):
     sys.argv = ["name"]
     magicli()
     mocked.assert_called_once_with("name")
-    assert caplog.messages[0] == "name"
+    assert capsys.readouterr().out == "name\n"
 
 
 @mock.patch("importlib.import_module", side_effect=module)
-def test_command_called(mocked, caplog):
+def test_command_called(mocked, capsys):
     sys.argv = ["name", "command"]
     magicli()
     mocked.assert_called_once_with("name")
-    assert caplog.messages[0] == "command"
+    assert capsys.readouterr().out == "command\n"
 
 
 @mock.patch("importlib.import_module", side_effect=module)
@@ -102,13 +101,13 @@ def test_short_option_with_wrong_type(mocked):
 
 
 @mock.patch("importlib.import_module", side_effect=module_version)
-def test_version(mocked, caplog):
+def test_version(mocked, capsys):
     for version in ["--version", "-V"]:
         sys.argv = ["name", version]
         with pytest.raises(SystemExit) as error:
             magicli()
         assert error.value.code is None
-        assert caplog.messages[0] == "1.2.3"
+        assert capsys.readouterr().out == "1.2.3\n"
 
     sys.argv = ["name", "-v"]
     with pytest.raises(SystemExit) as error:
@@ -117,12 +116,12 @@ def test_version(mocked, caplog):
 
 
 @mock.patch("importlib.import_module", side_effect=module_version)
-def test_version_with_command(mocked, caplog):
+def test_version_with_command(mocked, capsys):
     sys.argv = ["name", "command", "-v"]
     with pytest.raises(SystemExit) as error:
         magicli()
     assert error.value.code is None
-    assert caplog.messages[0] == "1.2.3"
+    assert capsys.readouterr().out == "1.2.3\n"
 
 
 @mock.patch("importlib.import_module", side_effect=module_with_two_commands)
@@ -143,7 +142,7 @@ commands:
 """
 
 @mock.patch("importlib.import_module", side_effect=module)
-def test_help_kwarg_displays_help_message(mocked, caplog):
+def test_help_kwarg_displays_help_message(mocked, capsys):
     sys.argv = ["name", "--help"]
     name.__doc__ = None
     with pytest.raises(SystemExit):
@@ -154,5 +153,4 @@ def test_help_kwarg_displays_help_message(mocked, caplog):
 
 commands:
   command"""
-    assert caplog.messages[0] != name.__doc__
-    assert caplog.messages[0] == doc
+    assert capsys.readouterr().out == doc + "\n"

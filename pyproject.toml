@@ -26,6 +26,3 @@ disable = [
     "unidiomatic-typecheck",
     "raise-missing-from",
 ]
-
-[tool.pytest]
-log_level = "DEBUG"

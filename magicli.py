@@ -7,24 +7,24 @@ line arguments based on function signatures.
 import ast
 import importlib
 import inspect
-import logging
-import os
 import subprocess
 import sys
 from functools import partial
 from importlib import metadata
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
 
 class ParseArgvError(Exception):
     """Failure to parse argv into args and kwargs based on function parameters and docstring."""
 
 
+def info(message):
+    """Print a status message for the user to stderr."""
+    print(message, file=sys.stderr)
+
+
 def magicli():
     """Parses command-line arguments and calls the appropriate function."""
-    logging.basicConfig(level=os.getenv("MAGICLI_LOG_LEVEL", "INFO"), format="%(message)s")
     name = Path(sys.argv[0]).name
     argv = sys.argv[1:]
 
@@ -206,7 +206,7 @@ def check_for_help_and_version(argv, parameters, docstring, module, function):
     if not module or len(argv) != 1:
         return
     if argv[0] in ("--help", "-h") and "help" not in parameters:
-        logger.info(help_message(help_from_function, function, None, module))
+        print(help_message(help_from_function, function, None, module))
         raise SystemExit
     args = {
         "--version": "--version",
@@ -214,7 +214,7 @@ def check_for_help_and_version(argv, parameters, docstring, module, function):
         "-V": "-V, --version",
     }
     if (doc := args.get(argv[0])) and doc in docstring and "version" not in parameters:
-        logger.info(get_version(module))
+        print(get_version(module))
         raise SystemExit
 
 
@@ -401,9 +401,9 @@ def cli(name="", author="", email="", description="", homepage=""):
         author = author or get_output("git config --get user.name")
         email = email or get_output("git config --get user.email")
         if not get_output("git tag"):
-            logger.debug("Specify the version with `git tag`")
+            info("Specify the version with `git tag`")
     else:
-        logger.debug("Not a git repo. Run `git init`")
+        info("Not a git repo. Run `git init`")
 
     authors = [f'{k}="{v}"' for k, v in {"name": author, "email": email}.items() if v]
 
@@ -425,7 +425,7 @@ def cli(name="", author="", email="", description="", homepage=""):
         if license_expression := get_license_expression(license_content):
             project.append(f'license = "{license_expression}"')
         else:
-            logger.debug("Unknown license: %s", license_file.name)
+            info(f"Unknown license: {license_file.name}")
         project.append(f'license-files = ["{license_file.name}"]')
 
     if description or (description := get_description(name)):
@@ -445,4 +445,4 @@ def cli(name="", author="", email="", description="", homepage=""):
     )
 
     pyproject.write_text(format_blocks(blocks, sep="\n") + "\n", encoding="utf-8")
-    logger.debug("Created pyproject.toml ✨")
+    info("Created pyproject.toml ✨")

@@ -59,14 +59,14 @@ def test_empty_cli_name_failure(with_two_files):
     assert error.value.code == 1
 
 
-def test_with_git_repo(caplog, with_git):
+def test_with_git_repo(capsys, with_git):
     cli(name="_")
-    assert "Specify the version with `git tag`" in caplog.messages
+    assert "Specify the version with `git tag`\n" in capsys.readouterr().err
 
 
-def test_without_git_repo(caplog, empty_directory):
+def test_without_git_repo(capsys, empty_directory):
     cli(name="_")
-    assert "Not a git repo. Run `git init`" in caplog.messages
+    assert "Not a git repo. Run `git init`\n" in capsys.readouterr().err
 
 
 def test_get_output():
@@ -100,7 +100,7 @@ def test_cli_with_license(with_license):
     assert 'license-files = ["LICENSE"]' in pyproject
 
 
-def test_cli_with_kwargs(caplog, with_readme_and_license):
+def test_cli_with_kwargs(capsys, with_readme_and_license):
     cli(
         name="name",
         author="Patrick Elmer",
@@ -108,7 +108,7 @@ def test_cli_with_kwargs(caplog, with_readme_and_license):
         description="docstring",
         homepage="https://github.com/PatrickElmer/magicli",
     )
-    assert any(msg == "Unknown license: LICENSE" for msg in caplog.messages)
+    assert "Unknown license: LICENSE\n" in capsys.readouterr().err
     assert (
         Path("pyproject.toml").read_text(encoding="utf-8")
         == """\
