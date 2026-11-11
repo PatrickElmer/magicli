@@ -334,9 +334,17 @@ def get_homepage(url=None):
 
 def get_description(name):
     """Return the first paragraph of a module's docstring if available."""
-    for path in (Path(f"{name}.py"), Path(name, "__init__.py"), Path("src", name, "__init__.py")):
+    for path in (
+        Path(f"{name}.py"),
+        Path(name, "__init__.py"),
+        Path("src", name, "__init__.py"),
+    ):
         if path.is_file():
-            doc = ast.get_docstring(ast.parse(path.read_text(encoding="utf-8"))) or ""
+            try:
+                tree = ast.parse(path.read_bytes())
+            except (SyntaxError, ValueError):
+                return None
+            doc = ast.get_docstring(tree) or ""
             return " ".join(doc.split("\n\n")[0].split()) or None
     return None
 
