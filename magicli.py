@@ -69,7 +69,7 @@ def call(function, argv, module=None, name=None):
     Displays a help message if an exception occurs.
     """
     docstring = inspect.getdoc(function) or ""
-    parameters = inspect.signature(function, eval=True).parameters
+    parameters = inspect.signature(function, eval_str=True).parameters
 
     check_for_help_and_version(argv, parameters, docstring, module, function)
 
