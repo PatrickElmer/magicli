@@ -2,15 +2,6 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-from fixtures import (
-    empty_directory,
-    pyproject,
-    with_git,
-    with_license,
-    with_readme_and_license,
-    with_tempdir,
-    with_two_files,
-)
 
 from magicli import (
     cli,
