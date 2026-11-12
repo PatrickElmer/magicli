@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Run tests with pytest
+    name: pytest
     runs-on: ubuntu-latest
     strategy:
       matrix:
