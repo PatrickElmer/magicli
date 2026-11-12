@@ -48,18 +48,23 @@ def get_function_from_argv(argv, module, name):
     return None
 
 
+def is_public_function(module, name):
+    """
+    Checks if `name` is a public function of the module. With `__all__`, only listed
+    names are public. Without it, imported functions are excluded.
+    """
+    function = getattr(module, name, None)
+    if not inspect.isfunction(function) or name.startswith("_"):
+        return False
+    if hasattr(module, "__all__"):
+        return name in module.__all__
+    return function.__module__ == module.__name__
+
+
 def is_command(argv, module):
-    """
-    Checks if the first argument is a valid command in the module and returns
-    the function to call if `argv[0]` is public and not excluded in `__all__`.
-    """
-    if (
-        argv
-        and not (command := argv[0].replace("-", "_")).startswith("_")
-        and command in getattr(module, "__all__", [command])
-        and inspect.isfunction(function := getattr(module, command, None))
-    ):
-        return function
+    """Returns the function named by `argv[0]` if it is a public command."""
+    if argv and is_public_function(module, command := argv[0].replace("-", "_")):
+        return getattr(module, command)
     return None
 
 
@@ -277,10 +282,8 @@ def get_commands(module):
     """Returns list of public commands that are not excluded by `__all__`."""
     return [
         name
-        for name, _ in inspect.getmembers(module, inspect.isfunction)
-        if not name.startswith("_")
-        and name in getattr(module, "__all__", [name])
-        and name != module.__name__
+        for name in dir(module)
+        if name != module.__name__ and is_public_function(module, name)
     ]
 
 
