@@ -17,6 +17,7 @@ def test_help_from_function_with_name():
 def test_help_from_module():
     module = type(sys)("name")
     module.command = f1
+    module.__all__ = ["command"]
     assert (
         help_from_module(module)
         == """\
@@ -33,6 +34,7 @@ def test_help_from_module_with_version():
     module = type(sys)("name")
     module.__dict__["__version__"] = "0.1.2"
     module.command = f1
+    module.__all__ = ["command"]
     assert (
         help_from_module(module)
         == """\

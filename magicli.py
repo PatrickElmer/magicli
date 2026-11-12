@@ -4,22 +4,23 @@ by introspecting its functions and automatically parsing command-
 line arguments based on function signatures.
 """
 
+import ast
 import importlib
 import inspect
-import logging
-import os
 import subprocess
 import sys
 from functools import partial
 from importlib import metadata
 from pathlib import Path
 
-logging.basicConfig(level=os.getenv("MAGICLI_LOG_LEVEL", "DEBUG"), format="%(message)s")
-logger = logging.getLogger(__name__)
-
 
 class ParseArgvError(Exception):
     """Failure to parse argv into args and kwargs based on function parameters and docstring."""
+
+
+def info(message):
+    """Print a status message for the user to stderr."""
+    print(message, file=sys.stderr)
 
 
 def magicli():
@@ -30,7 +31,7 @@ def magicli():
     if name == "magicli":
         raise SystemExit(call(cli, argv, sys.modules["magicli"]))
 
-    module = load_module(name)
+    module = load_module(name.replace("-", "_"))
 
     if function := get_function_from_argv(argv, module, name.replace("-", "_")):
         function()
@@ -47,18 +48,23 @@ def get_function_from_argv(argv, module, name):
     return None
 
 
+def is_public_function(module, name):
+    """
+    Checks if `name` is a public function of the module. With `__all__`, only listed
+    names are public. Without it, imported functions are excluded.
+    """
+    function = getattr(module, name, None)
+    if not inspect.isfunction(function) or name.startswith("_"):
+        return False
+    if hasattr(module, "__all__"):
+        return name in module.__all__
+    return function.__module__ == module.__name__
+
+
 def is_command(argv, module):
-    """
-    Checks if the first argument is a valid command in the module and returns
-    the function to call if `argv[0]` is public and not excluded in `__all__`.
-    """
-    if (
-        argv
-        and not (command := argv[0].replace("-", "_")).startswith("_")
-        and command in getattr(module, "__all__", [command])
-        and inspect.isfunction(function := getattr(module, command, None))
-    ):
-        return function
+    """Returns the function named by `argv[0]` if it is a public command."""
+    if argv and is_public_function(module, command := argv[0].replace("-", "_")):
+        return getattr(module, command)
     return None
 
 
@@ -68,7 +74,7 @@ def call(function, argv, module=None, name=None):
     Displays a help message if an exception occurs.
     """
     docstring = inspect.getdoc(function) or ""
-    parameters = inspect.signature(function).parameters
+    parameters = inspect.signature(function, eval_str=True).parameters
 
     check_for_help_and_version(argv, parameters, docstring, module, function)
 
@@ -111,9 +117,7 @@ def check_all_args_present(len_args, parameter_list):
     if len_args < len(parameter_list):
         parameter = parameter_list[len_args]
         if parameter.default is parameter.empty:
-            raise ParseArgvError(
-                f"{parameter.name}: positional argument missing"
-            )
+            raise ParseArgvError(f"{parameter.name}: positional argument missing")
 
 
 def parse_kwarg(key, argv, parameters):
@@ -152,7 +156,7 @@ def cast_value(value, cast_to):
     """Cast a command-line argument value or raise a parser error."""
     try:
         return value if cast_to is str else cast_to(value)
-    except ValueError as exc:
+    except (ValueError, TypeError) as exc:
         raise ParseArgvError(exc.args[0]) if exc.args else ParseArgvError() from exc
 
 
@@ -184,7 +188,7 @@ def short_to_long_option(short, docstring):
         if len(docstring) - start > 1:
             chars = [" ", "\n", "]"]
             indices = (i for char in chars if (i := docstring.find(char, start)) != -1)
-            return docstring[start : min(indices, default=None)]
+            return docstring[start : min(indices, default=None)].replace("-", "_")
     raise ParseArgvError(f"-{short}: invalid short option")
 
 
@@ -205,7 +209,7 @@ def check_for_help_and_version(argv, parameters, docstring, module, function):
     if not module or len(argv) != 1:
         return
     if argv[0] in ("--help", "-h") and "help" not in parameters:
-        logger.info(help_message(help_from_function, function, None, module))
+        print(help_message(help_from_function, function, None, module))
         raise SystemExit
     args = {
         "--version": "--version",
@@ -213,7 +217,7 @@ def check_for_help_and_version(argv, parameters, docstring, module, function):
         "-V": "-V, --version",
     }
     if (doc := args.get(argv[0])) and doc in docstring and "version" not in parameters:
-        logger.info(get_version(module))
+        print(get_version(module))
         raise SystemExit
 
 
@@ -278,10 +282,8 @@ def get_commands(module):
     """Returns list of public commands that are not excluded by `__all__`."""
     return [
         name
-        for name, _ in inspect.getmembers(module, inspect.isfunction)
-        if not name.startswith("_")
-        and name in getattr(module, "__all__", [name])
-        and name != module.__name__
+        for name in dir(module)
+        if name != module.__name__ and is_public_function(module, name)
     ]
 
 
@@ -333,12 +335,19 @@ def get_homepage(url=None):
 
 def get_description(name):
     """Return the first paragraph of a module's docstring if available."""
-    try:
-        module = importlib.import_module(name)
-    except ModuleNotFoundError:
-        return None
-    doc = (module.__doc__ or "").split("\n\n")[0]
-    return " ".join(stripped for line in doc.splitlines() if (stripped := line.strip()))
+    for path in (
+        Path(f"{name}.py"),
+        Path(name, "__init__.py"),
+        Path("src", name, "__init__.py"),
+    ):
+        if path.is_file():
+            try:
+                tree = ast.parse(path.read_bytes())
+            except (SyntaxError, ValueError):
+                return None
+            doc = ast.get_docstring(tree) or ""
+            return " ".join(doc.split("\n\n")[0].split()) or None
+    return None
 
 
 def get_license_expression(content):
@@ -393,9 +402,9 @@ def cli(name="", author="", email="", description="", homepage=""):
         author = author or get_output("git config --get user.name")
         email = email or get_output("git config --get user.email")
         if not get_output("git tag"):
-            logger.debug("Specify the version with `git tag`")
+            info("Specify the version with `git tag`")
     else:
-        logger.debug("Not a git repo. Run `git init`")
+        info("Not a git repo. Run `git init`")
 
     authors = [f'{k}="{v}"' for k, v in {"name": author, "email": email}.items() if v]
 
@@ -417,7 +426,7 @@ def cli(name="", author="", email="", description="", homepage=""):
         if license_expression := get_license_expression(license_content):
             project.append(f'license = "{license_expression}"')
         else:
-            logger.debug("Unknown license: %s", license_file.name)
+            info(f"Unknown license: {license_file.name}")
         project.append(f'license-files = ["{license_file.name}"]')
 
     if description or (description := get_description(name)):
@@ -437,4 +446,4 @@ def cli(name="", author="", email="", description="", homepage=""):
     )
 
     pyproject.write_text(format_blocks(blocks, sep="\n") + "\n", encoding="utf-8")
-    logger.debug("Created pyproject.toml ✨")
+    info("Created pyproject.toml ✨")
