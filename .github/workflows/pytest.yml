@@ -19,4 +19,4 @@ jobs:
         with:
           cache-dependency-glob: ""
           python-version: ${{ matrix.python-version }}
-      - run: uv run --with pytest --with pytest-cov python3 -m pytest --cov=magicli --cov-report=term-missing
+      - run: uv run --with pytest --with pytest-cov python3 -m pytest --cov=magicli --cov-branch --cov-report=term-missing
