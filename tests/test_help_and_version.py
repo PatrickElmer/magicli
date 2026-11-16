@@ -45,9 +45,11 @@ commands:
 
 
 def test_help_message_for_unknown_command(fake_module, run):
-    module = fake_module(
-        magicli_testmod=lambda: None, command=lambda: None, command_2=lambda: None
-    )
+    def magicli_testmod(): ...
+    def command(): ...
+    def command_2(): ...
+
+    module = fake_module(magicli_testmod, command, command_2)
     with pytest.raises(SystemExit) as error:
         run("unknown_command")
     assert (
@@ -56,7 +58,7 @@ def test_help_message_for_unknown_command(fake_module, run):
 unknown_command: unknown command
 
 usage:
-  <lambda>
+  {module.__name__}
   {module.__name__} <command>
 
 commands:
