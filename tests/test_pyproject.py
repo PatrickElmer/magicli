@@ -37,10 +37,16 @@ def test_empty_cli_name_failure(project):
     assert error.value.code == 1
 
 
-def test_with_git_repo(capsys, project):
+def test_with_git_repo_without_tag(capsys, project):
     project(git=True)
     cli(name="_")
     assert "Specify the version with `git tag`\n" in capsys.readouterr().err
+
+
+def test_with_git_repo_with_tag(capsys, project):
+    project(tag="v0.1.0")
+    cli(name="_")
+    assert "Specify the version with `git tag`" not in capsys.readouterr().err
 
 
 def test_without_git_repo(capsys, project):
