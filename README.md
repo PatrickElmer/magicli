@@ -99,5 +99,5 @@ If no docstring is specified, a usage message is printed.
 Run pytest with coverage report:
 
 ```bash
-python3 -m pytest -s --cov=magicli --cov-report=term-missing
+python3 -m pytest -s --cov=magicli --cov-branch --cov-report=term-missing
 ```
