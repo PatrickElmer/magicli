@@ -315,19 +315,19 @@ def get_project_name():
 
 
 def get_output(command):
-    """Return the stdout of a shell command or None on failure."""
+    """Return the stdout of a command (list of arguments) or None on failure."""
     try:
         output = subprocess.run(
-            command.split(), capture_output=True, text=True, check=False
+            command, capture_output=True, text=True, check=False
         ).stdout
-    except FileNotFoundError:
+    except OSError:
         return None
     return output.removesuffix("\n") or None
 
 
 def get_homepage(url=None):
     """Return a homepage url from a git remote url."""
-    url = url or get_output("git remote get-url origin") or ""
+    url = url or get_output(["git", "remote", "get-url", "origin"]) or ""
     if url.startswith("git@"):
         url = "https://" + url.removeprefix("git@").replace(":", "/")
     return url.removesuffix(".git")
@@ -399,9 +399,9 @@ def cli(name="", author="", email="", description="", homepage=""):
     name = name or get_project_name()
 
     if Path(".git").exists():
-        author = author or get_output("git config --get user.name")
-        email = email or get_output("git config --get user.email")
-        if not get_output("git tag"):
+        author = author or get_output(["git", "config", "--get", "user.name"])
+        email = email or get_output(["git", "config", "--get", "user.email"])
+        if not get_output(["git", "tag"]):
             info("Specify the version with `git tag`")
     else:
         info("Not a git repo. Run `git init`")
