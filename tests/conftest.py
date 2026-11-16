@@ -1,4 +1,18 @@
+import sys
+
 import pytest
+
+MODULE_NAME = "magicli_testmod"
+
+
+def magicli_testmod():
+    "-V, --version"
+    print("name")
+
+
+def command():
+    "-v, --version"
+    print("command")
 
 
 @pytest.fixture(autouse=True)
@@ -28,3 +42,43 @@ def project(tmp_path, monkeypatch):
         return tmp_path
 
     return make
+
+
+@pytest.fixture
+def fake_module(monkeypatch):
+    """
+    Factory that registers a fake module in `sys.modules` so `magicli` imports it.
+    Functions are added under their `__name__`, keyword arguments under the given
+    name. All of them are listed in `__all__`.
+    """
+
+    def make(*functions, version=None, **named):
+        module = type(sys)(MODULE_NAME)
+        module.__doc__ = "docstring"
+        module.__version__ = version
+        named = {function.__name__: function for function in functions} | named
+        for name, function in named.items():
+            setattr(module, name, function)
+        module.__all__ = list(named)
+        monkeypatch.setitem(sys.modules, MODULE_NAME, module)
+        return module
+
+    return make
+
+
+@pytest.fixture
+def module(fake_module):
+    """Fake module with a main function named like the module and a `command`."""
+    return fake_module(magicli_testmod, command)
+
+
+@pytest.fixture
+def run(monkeypatch):
+    """Runs `magicli` with the given command-line arguments."""
+    from magicli import magicli
+
+    def run_magicli(*argv, prog=MODULE_NAME):
+        monkeypatch.setattr(sys, "argv", [prog, *argv])
+        magicli()
+
+    return run_magicli

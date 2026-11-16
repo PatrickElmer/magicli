@@ -50,8 +50,8 @@ def test_without_git_repo(capsys, project):
 
 
 def test_get_output():
-    assert get_output(f"{sys.executable} -c print(1)") == "1"
-    assert get_output("-") is None
+    assert get_output([sys.executable, "-c", "print(1)"]) == "1"
+    assert get_output(["-"]) is None
 
 
 @pytest.mark.parametrize(
@@ -117,3 +117,11 @@ requires = ["setuptools>=80", "setuptools-scm[simple]>=8"]
 build-backend = "setuptools.build_meta"
 """
     )
+
+
+@mock.patch("builtins.input", return_value="n")
+def test_module_is_magicli(_, project, run):
+    project("pyproject.toml", "module.py")
+    with pytest.raises(SystemExit) as error:
+        run(prog="magicli")
+    assert error.value.code == 1
