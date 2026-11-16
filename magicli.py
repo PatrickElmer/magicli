@@ -320,7 +320,7 @@ def get_output(command):
         output = subprocess.run(
             command, capture_output=True, text=True, check=False
         ).stdout
-    except FileNotFoundError:
+    except OSError:
         return None
     return output.removesuffix("\n") or None
 

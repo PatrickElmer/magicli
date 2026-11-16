@@ -60,6 +60,13 @@ def test_get_output():
     assert get_output(["-"]) is None
 
 
+def test_get_output_not_executable(tmp_path):
+    script = tmp_path / "script"
+    script.write_text("#!/bin/sh\necho 1\n")
+    script.chmod(0o644)
+    assert get_output([str(script)]) is None
+
+
 @pytest.mark.parametrize(
     "url",
     [
