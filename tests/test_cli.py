@@ -1,4 +1,4 @@
-from pathlib import Path
+import sys
 from unittest import mock
 
 import pytest
@@ -13,68 +13,61 @@ from magicli import (
 )
 
 
-def module(name):
-    module = type(pytest)(name)
-    module.__doc__ = "docstring"
-    return module
-
-
 @mock.patch("builtins.input", lambda _: "two")
-def test_correct_name_input(with_two_files):
+def test_correct_name_input(project):
+    path = project("module.py", "two.py")
     cli()
 
-    path = Path("pyproject.toml")
-    assert path.exists()
-    with path.open(encoding="utf-8") as f:
-        assert 'name = "two"' in f.read()
+    assert 'name = "two"' in (path / "pyproject.toml").read_text(encoding="utf-8")
 
 
 @mock.patch("builtins.input", lambda *_: "y")
-def test_automatic_name(pyproject):
+def test_overwrite_pyproject_toml(project):
+    path = project("pyproject.toml", "module.py")
     cli()
 
-    assert 'name = "module"' in pyproject.read_text()
-
-
-@mock.patch("builtins.input", lambda *_: "y")
-def test_overwrite_pyproject_toml(pyproject):
-    cli()
-
-    assert 'name = "module"' in pyproject.read_text()
+    assert 'name = "module"' in (path / "pyproject.toml").read_text(encoding="utf-8")
 
 
 @mock.patch("builtins.input", lambda *_: "")
-def test_empty_cli_name_failure(with_two_files):
+def test_empty_cli_name_failure(project):
+    project("module.py", "two.py")
     with pytest.raises(SystemExit) as error:
         get_project_name()
     assert error.value.code == 1
 
 
-def test_with_git_repo(capsys, with_git):
+def test_with_git_repo(capsys, project):
+    project(git=True)
     cli(name="_")
     assert "Specify the version with `git tag`\n" in capsys.readouterr().err
 
 
-def test_without_git_repo(capsys, empty_directory):
+def test_without_git_repo(capsys, project):
+    project()
     cli(name="_")
     assert "Not a git repo. Run `git init`\n" in capsys.readouterr().err
 
 
 def test_get_output():
-    assert get_output("ls") is not None
+    assert get_output(f"{sys.executable} -c print(1)") == "1"
     assert get_output("-") is None
 
 
-def test_get_homepage():
-    for url in [
+@pytest.mark.parametrize(
+    "url",
+    [
         "https://github.com/PatrickElmer/magicli.git",
         "git@github.com:PatrickElmer/magicli.git",
-    ]:
-        assert get_homepage(url) == "https://github.com/PatrickElmer/magicli"
+    ],
+)
+def test_get_homepage(url):
+    assert get_homepage(url) == "https://github.com/PatrickElmer/magicli"
 
 
-def test_get_description():
-    assert get_description("magicli") is not None
+def test_get_description(project):
+    project(**{"module.py": '"""First  paragraph\nof docstring.\n\nSecond paragraph."""'})
+    assert get_description("module") == "First paragraph of docstring."
 
 
 def test_get_license_expression():
@@ -83,15 +76,16 @@ def test_get_license_expression():
     assert get_license_expression("") is None
 
 
-def test_cli_with_license(with_license):
-    Path(with_license, "LICENSE").write_text("MIT License", encoding="utf-8")
+def test_cli_with_license(project):
+    path = project(LICENSE="MIT License")
     cli(name="name", author="Patrick Elmer", email="patrick@elmer.ws")
-    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+    pyproject = (path / "pyproject.toml").read_text(encoding="utf-8")
     assert 'license = "MIT"' in pyproject
     assert 'license-files = ["LICENSE"]' in pyproject
 
 
-def test_cli_with_kwargs(capsys, with_readme_and_license):
+def test_cli_with_kwargs(capsys, project):
+    path = project("README.md", "LICENSE")
     cli(
         name="name",
         author="Patrick Elmer",
@@ -101,7 +95,7 @@ def test_cli_with_kwargs(capsys, with_readme_and_license):
     )
     assert "Unknown license: LICENSE\n" in capsys.readouterr().err
     assert (
-        Path("pyproject.toml").read_text(encoding="utf-8")
+        (path / "pyproject.toml").read_text(encoding="utf-8")
         == """\
 [project]
 name = "name"

@@ -2,8 +2,17 @@ import sys
 
 from magicli import help_from_function, help_from_module
 
+MODULE_NAME = "magicli_testmod"
+
 
 def f1(arg, kwarg=1): ...
+
+
+def create_module():
+    module = type(sys)(MODULE_NAME)
+    module.command = f1
+    module.__all__ = ["command"]
+    return module
 
 
 def test_help_from_function():
@@ -15,14 +24,11 @@ def test_help_from_function_with_name():
 
 
 def test_help_from_module():
-    module = type(sys)("name")
-    module.command = f1
-    module.__all__ = ["command"]
     assert (
-        help_from_module(module)
-        == """\
+        help_from_module(create_module())
+        == f"""\
 usage:
-  name command
+  {MODULE_NAME} command
 
 commands:
   command\
@@ -31,17 +37,15 @@ commands:
 
 
 def test_help_from_module_with_version():
-    module = type(sys)("name")
-    module.__dict__["__version__"] = "0.1.2"
-    module.command = f1
-    module.__all__ = ["command"]
+    module = create_module()
+    module.__version__ = "0.1.2"
     assert (
         help_from_module(module)
-        == """\
-name 0.1.2
+        == f"""\
+{MODULE_NAME} 0.1.2
 
 usage:
-  name command
+  {MODULE_NAME} command
 
 commands:
   command\

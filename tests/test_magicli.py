@@ -1,13 +1,14 @@
 import sys
-from functools import partial
 from unittest import mock
 
 import pytest
 
 from magicli import magicli
 
+MODULE_NAME = "magicli_testmod"
 
-def name():
+
+def magicli_testmod():
     "-V, --version"
     print("name")
 
@@ -17,145 +18,123 @@ def command():
     print("command")
 
 
-def create_module(name, version=None, functions=None):
-    module = type(sys)(name)
-    module.__doc__ = "docstring"
-    module.__version__ = version
-    for function in functions or []:
-        setattr(module, function.__name__, function)
-    module.__all__ = [function.__name__ for function in functions or []]
-    return module
+@pytest.fixture
+def install_module(monkeypatch):
+    """Factory that registers a fake module in `sys.modules` so `magicli` imports it."""
+
+    def install(*functions, version=None, all_=None):
+        module = type(sys)(MODULE_NAME)
+        module.__doc__ = "docstring"
+        module.__version__ = version
+        for function in functions:
+            setattr(module, function.__name__, function)
+        module.__all__ = all_ or [function.__name__ for function in functions]
+        monkeypatch.setitem(sys.modules, MODULE_NAME, module)
+        return module
+
+    return install
 
 
-module = partial(create_module, functions=[name, command])
-module_version = partial(module, version="1.2.3")
-module_empty = partial(create_module, functions=None)
+@pytest.fixture
+def module(install_module):
+    return install_module(magicli_testmod, command)
 
 
-def module_with_two_commands(name):
-    module = type(sys)(name)
-    setattr(module, "name", lambda: None)
-    setattr(module, "command", lambda: None)
-    setattr(module, "command_2", lambda: None)
-    module.__all__ = ["name", "command", "command_2"]
-    return module
+@pytest.fixture
+def run(monkeypatch):
+    """Runs `magicli` with the given command-line arguments."""
 
-
-@mock.patch("importlib.import_module", side_effect=module)
-def test_module_imported(mocked):
-    with mock.patch.object(sys, "argv", ["name"]):
+    def run_magicli(*argv, prog=MODULE_NAME):
+        monkeypatch.setattr(sys, "argv", [prog, *argv])
         magicli()
-    mocked.assert_called_once_with("name")
+
+    return run_magicli
 
 
-@mock.patch("importlib.import_module", side_effect=module)
-def test_first_function_called(mocked, capsys):
-    with mock.patch.object(sys, "argv", ["name"]):
-        magicli()
-    mocked.assert_called_once_with("name")
+def test_first_function_called(module, run, capsys):
+    run()
     assert capsys.readouterr().out == "name\n"
 
 
-@mock.patch("importlib.import_module", side_effect=module)
-def test_command_called(mocked, capsys):
-    with mock.patch.object(sys, "argv", ["name", "command"]):
-        magicli()
-    mocked.assert_called_once_with("name")
+def test_command_called(module, run, capsys):
+    run("command")
     assert capsys.readouterr().out == "command\n"
 
 
-@mock.patch("importlib.import_module", side_effect=module)
-def test_wrong_command_not_called(mocked):
-    with (
-        mock.patch.object(sys, "argv", ["name", "wrong_command"]),
-        pytest.raises(SystemExit) as error,
-    ):
-        magicli()
+def test_wrong_command_not_called(module, run):
+    with pytest.raises(SystemExit) as error:
+        run("wrong_command")
     assert error.value.code.startswith("wrong_command: unknown command")
 
 
-@mock.patch("importlib.import_module", side_effect=module_empty)
-def test_module_without_functions(mocked):
-    with (
-        mock.patch.object(sys, "argv", ["name"]),
-        pytest.raises(SystemExit),
-    ):
-        magicli()
+def test_module_without_functions(install_module, run):
+    install_module()
+    with pytest.raises(SystemExit) as error:
+        run()
+    assert error.value.code == "docstring"
 
 
-def test_module_not_found():
-    with (
-        mock.patch.object(sys, "argv", ["_"]),
-        pytest.raises(SystemExit),
-    ):
-        magicli()
+def test_module_not_found(run):
+    with pytest.raises(SystemExit) as error:
+        run(prog="magicli_nonexistent_module")
+    assert error.value.code == "magicli_nonexistent_module: command not found"
 
 
 @mock.patch("builtins.input", return_value="n")
-def test_module_is_magicli(_, pyproject):
-    with (
-        mock.patch.object(sys, "argv", ["magicli"]),
-        pytest.raises(SystemExit) as error,
-    ):
-        magicli()
+def test_module_is_magicli(_, project, run):
+    project("pyproject.toml", "module.py")
+    with pytest.raises(SystemExit) as error:
+        run(prog="magicli")
     assert error.value.code == 1
 
 
-@mock.patch("importlib.import_module", side_effect=module)
-def test_short_option_with_wrong_type(mocked):
-    with (
-        mock.patch.object(sys, "argv", ["name", "-ab"]),
-        pytest.raises(SystemExit) as error,
-    ):
-        magicli()
+def test_short_option_with_wrong_type(module, run):
+    with pytest.raises(SystemExit) as error:
+        run("-ab")
     assert error.value.code.startswith("-a: invalid short option")
 
 
-@mock.patch("importlib.import_module", side_effect=module_version)
-def test_version(mocked, capsys):
-    for version in ["--version", "-V"]:
-        with (
-            mock.patch.object(sys, "argv", ["name", version]),
-            pytest.raises(SystemExit) as error,
-        ):
-            magicli()
-        assert error.value.code is None
-        assert capsys.readouterr().out == "1.2.3\n"
-
-    with (
-        mock.patch.object(sys, "argv", ["name", "-v"]),
-        pytest.raises(SystemExit) as error,
-    ):
-        magicli()
-    assert error.value.code.startswith("-v: invalid short option")
-
-
-@mock.patch("importlib.import_module", side_effect=module_version)
-def test_version_with_command(mocked, capsys):
-    with (
-        mock.patch.object(sys, "argv", ["name", "command", "-v"]),
-        pytest.raises(SystemExit) as error,
-    ):
-        magicli()
+@pytest.mark.parametrize("flag", ["--version", "-V"])
+def test_version(install_module, run, capsys, flag):
+    install_module(magicli_testmod, command, version="1.2.3")
+    with pytest.raises(SystemExit) as error:
+        run(flag)
     assert error.value.code is None
     assert capsys.readouterr().out == "1.2.3\n"
 
 
-@mock.patch("importlib.import_module", side_effect=module_with_two_commands)
-def test_help_message_for_unknown_command(mocked):
-    with (
-        mock.patch.object(sys, "argv", ["name", "unknown_command"]),
-        pytest.raises(SystemExit) as error,
-    ):
-        magicli()
+def test_version_flag_not_in_docstring(install_module, run):
+    install_module(magicli_testmod, command, version="1.2.3")
+    with pytest.raises(SystemExit) as error:
+        run("-v")
+    assert error.value.code.startswith("-v: invalid short option")
+
+
+def test_version_with_command(install_module, run, capsys):
+    install_module(magicli_testmod, command, version="1.2.3")
+    with pytest.raises(SystemExit) as error:
+        run("command", "-v")
+    assert error.value.code is None
+    assert capsys.readouterr().out == "1.2.3\n"
+
+
+def test_help_message_for_unknown_command(monkeypatch, run):
+    module = type(sys)(MODULE_NAME)
+    module.magicli_testmod = lambda: None
+    module.command = lambda: None
+    module.command_2 = lambda: None
+    module.__all__ = ["magicli_testmod", "command", "command_2"]
+    monkeypatch.setitem(sys.modules, MODULE_NAME, module)
+    with pytest.raises(SystemExit) as error:
+        run("unknown_command")
     assert (
         error.value.code
-        == """\
+        == f"""\
 unknown_command: unknown command
 
 usage:
   <lambda>
-  name <command>
+  {MODULE_NAME} <command>
 
 commands:
   command
@@ -164,18 +143,18 @@ commands:
     )
 
 
-@mock.patch("importlib.import_module", side_effect=module)
-def test_help_kwarg_displays_help_message(mocked, capsys, monkeypatch):
-    monkeypatch.setattr(name, "__doc__", None)
-    with (
-        mock.patch.object(sys, "argv", ["name", "--help"]),
-        pytest.raises(SystemExit),
-    ):
-        magicli()
-    doc = """usage:
-  name
-  name <command>
+def test_help_kwarg_displays_help_message(module, run, capsys, monkeypatch):
+    monkeypatch.setattr(magicli_testmod, "__doc__", None)
+    with pytest.raises(SystemExit):
+        run("--help")
+    assert (
+        capsys.readouterr().out
+        == f"""\
+usage:
+  {MODULE_NAME}
+  {MODULE_NAME} <command>
 
 commands:
-  command"""
-    assert capsys.readouterr().out == doc + "\n"
+  command
+"""
+    )
