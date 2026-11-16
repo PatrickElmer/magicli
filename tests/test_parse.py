@@ -99,7 +99,6 @@ def test_parse_argv_with_invalid_type_raises_parse_error():
     assert error.value.args[0] == "invalid literal for int() with base 10: 'not-an-int'"
 
 
-
 @pytest.mark.parametrize(
     ("default", "result"),
     [
