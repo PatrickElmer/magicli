@@ -76,6 +76,16 @@ def test_get_description(project):
     assert get_description("module") == "First paragraph of docstring."
 
 
+@pytest.mark.parametrize(
+    "content",
+    ['"""Docstring"""\ndef (:', '"""Docstring"""\n\0'],
+    ids=["syntax_error", "null_byte"],
+)
+def test_get_description_unparsable(project, content):
+    project(**{"module.py": content})
+    assert get_description("module") is None
+
+
 def test_get_license_expression():
     assert get_license_expression("Apache License") == "Apache-2.0"
     assert get_license_expression(" GNU GENERAL PUBLIC LICENSE ") == "GPL-3.0-or-later"

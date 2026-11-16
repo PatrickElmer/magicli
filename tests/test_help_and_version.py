@@ -44,6 +44,13 @@ commands:
     )
 
 
+@pytest.mark.parametrize("version", ["0.1.2", None])
+def test_help_from_module_without_commands(fake_module, version):
+    module = fake_module(version=version)
+    expected = f"{module.__name__} {version}" if version else ""
+    assert help_from_module(module) == expected
+
+
 def test_help_message_for_unknown_command(fake_module, run):
     def magicli_testmod(): ...
     def command(): ...
