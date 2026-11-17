@@ -70,13 +70,13 @@ commands:
 
 
 @pytest.mark.parametrize("argv", [("--version",), ("-V",), ("command", "-v")])
-def test_version(module, run, argv):
-    module.__version__ = "1.2.3"
+def test_version(fake_module, module_functions, run, argv):
+    fake_module(*module_functions, version="1.2.3")
     result = run(*argv)
     assert result.code is None
     assert result.out == "1.2.3\n"
 
 
-def test_version_flag_not_in_docstring(module, run):
-    module.__version__ = "1.2.3"
+def test_version_flag_not_in_docstring(fake_module, module_functions, run):
+    fake_module(*module_functions, version="1.2.3")
     assert run("-v").code.startswith("-v: invalid short option")

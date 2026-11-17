@@ -1,5 +1,5 @@
 import inspect
-from inspect import Parameter, _ParameterKind
+from inspect import Parameter
 
 import pytest
 
@@ -12,7 +12,7 @@ from magicli import (
     short_to_long_option,
 )
 
-PK = _ParameterKind.POSITIONAL_OR_KEYWORD
+PK = Parameter.POSITIONAL_OR_KEYWORD
 
 
 def test_parse_kwarg():
@@ -104,9 +104,7 @@ def test_parse_short_options(default, result):
         short_options="a",
         docstring="-a, --aa",
         iter_argv=iter(["b"]),
-        parameters={
-            "aa": Parameter("aa", _ParameterKind.KEYWORD_ONLY, default=default)
-        },
+        parameters={"aa": Parameter("aa", Parameter.KEYWORD_ONLY, default=default)},
         kwargs=kwargs,
     )
     assert kwargs == {"aa": result}
@@ -126,7 +124,7 @@ def test_parse_short_options_failures(overrides, message):
         "short_options": "a",
         "docstring": "-a, --abc",
         "argv": ["b"],
-        "parameters": {"abc": Parameter("abc", _ParameterKind.KEYWORD_ONLY)},
+        "parameters": {"abc": Parameter("abc", Parameter.KEYWORD_ONLY)},
         "kwargs": {},
     } | overrides
     options["iter_argv"] = iter(options.pop("argv"))

@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -14,18 +15,18 @@ from magicli import (
 
 def test_correct_name_input(project, monkeypatch):
     monkeypatch.setattr("builtins.input", lambda _: "two")
-    path = project("module.py", "two.py")
+    project("module.py", "two.py")
     cli()
 
-    assert 'name = "two"' in (path / "pyproject.toml").read_text(encoding="utf-8")
+    assert 'name = "two"' in Path("pyproject.toml").read_text(encoding="utf-8")
 
 
 def test_overwrite_pyproject_toml(project, monkeypatch):
     monkeypatch.setattr("builtins.input", lambda _: "y")
-    path = project("pyproject.toml", "module.py")
+    project("pyproject.toml", "module.py")
     cli()
 
-    assert 'name = "module"' in (path / "pyproject.toml").read_text(encoding="utf-8")
+    assert 'name = "module"' in Path("pyproject.toml").read_text(encoding="utf-8")
 
 
 def test_empty_cli_name_failure(project, monkeypatch):
@@ -106,15 +107,15 @@ def test_get_license_expression(content, expression):
 
 
 def test_cli_with_license(project):
-    path = project(LICENSE="MIT License")
+    project(LICENSE="MIT License")
     cli(name="name", author="Patrick Elmer", email="patrick@elmer.ws")
-    pyproject = (path / "pyproject.toml").read_text(encoding="utf-8")
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
     assert 'license = "MIT"' in pyproject
     assert 'license-files = ["LICENSE"]' in pyproject
 
 
 def test_cli_with_kwargs(capsys, project):
-    path = project("README.md", "LICENSE")
+    project("README.md", "LICENSE")
     cli(
         name="name",
         author="Patrick Elmer",
@@ -124,7 +125,7 @@ def test_cli_with_kwargs(capsys, project):
     )
     assert "Unknown license: LICENSE\n" in capsys.readouterr().err
     assert (
-        (path / "pyproject.toml").read_text(encoding="utf-8")
+        Path("pyproject.toml").read_text(encoding="utf-8")
         == """\
 [project]
 name = "name"

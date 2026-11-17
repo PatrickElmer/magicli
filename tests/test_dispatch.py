@@ -3,7 +3,7 @@ import pytest
 
 @pytest.mark.parametrize(
     ("argv", "out"),
-    [((), "name\n"), (("command",), "command\n")],
+    [((), "main\n"), (("command",), "command\n")],
     ids=["main_function", "command"],
 )
 def test_function_called(module, run, argv, out):

@@ -10,7 +10,7 @@ MODULE_NAME = "magicli_testmod"
 
 def magicli_testmod():
     "-V, --version"
-    print("name")
+    print("main")
 
 
 def command():
@@ -80,9 +80,15 @@ def fake_module(monkeypatch):
 
 
 @pytest.fixture
-def module(fake_module):
-    """Fake module with a main function named like the module and a `command`."""
-    return fake_module(magicli_testmod, command)
+def module_functions():
+    """A main function named like the module and a `command`, for `fake_module`."""
+    return magicli_testmod, command
+
+
+@pytest.fixture
+def module(fake_module, module_functions):
+    """Fake module with the default `module_functions`."""
+    return fake_module(*module_functions)
 
 
 @pytest.fixture
