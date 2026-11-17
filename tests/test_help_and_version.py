@@ -14,41 +14,22 @@ def test_help_from_function_with_name():
     assert help_from_function(f1, "name") == "usage:\n  name f1 arg [--kwarg]"
 
 
-def test_help_from_module(fake_module):
-    module = fake_module(command=f1)
-    assert (
-        help_from_module(module)
-        == f"""\
-usage:
-  {module.__name__} command
-
-commands:
-  command\
-"""
-    )
+USAGE = "usage:\n  {name} command\n\ncommands:\n  command"
 
 
-def test_help_from_module_with_version(fake_module):
-    module = fake_module(command=f1, version="0.1.2")
-    assert (
-        help_from_module(module)
-        == f"""\
-{module.__name__} 0.1.2
-
-usage:
-  {module.__name__} command
-
-commands:
-  command\
-"""
-    )
-
-
-@pytest.mark.parametrize("version", ["0.1.2", None])
-def test_help_from_module_without_commands(fake_module, version):
-    module = fake_module(version=version)
-    expected = f"{module.__name__} {version}" if version else ""
-    assert help_from_module(module) == expected
+@pytest.mark.parametrize(
+    ("version", "commands", "expected"),
+    [
+        (None, {"command": f1}, USAGE),
+        ("0.1.2", {"command": f1}, "{name} 0.1.2\n\n" + USAGE),
+        ("0.1.2", {}, "{name} 0.1.2"),
+        (None, {}, ""),
+    ],
+    ids=["commands", "commands_and_version", "version_only", "empty"],
+)
+def test_help_from_module(fake_module, version, commands, expected):
+    module = fake_module(version=version, **commands)
+    assert help_from_module(module) == expected.format(name=module.__name__)
 
 
 def test_help_message_for_unknown_command(fake_module, run):
@@ -88,10 +69,10 @@ commands:
     )
 
 
-@pytest.mark.parametrize("flag", ["--version", "-V"])
-def test_version(module, run, flag):
+@pytest.mark.parametrize("argv", [("--version",), ("-V",), ("command", "-v")])
+def test_version(module, run, argv):
     module.__version__ = "1.2.3"
-    result = run(flag)
+    result = run(*argv)
     assert result.code is None
     assert result.out == "1.2.3\n"
 
@@ -99,10 +80,3 @@ def test_version(module, run, flag):
 def test_version_flag_not_in_docstring(module, run):
     module.__version__ = "1.2.3"
     assert run("-v").code.startswith("-v: invalid short option")
-
-
-def test_version_with_command(module, run):
-    module.__version__ = "1.2.3"
-    result = run("command", "-v")
-    assert result.code is None
-    assert result.out == "1.2.3\n"

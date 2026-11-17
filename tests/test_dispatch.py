@@ -1,13 +1,25 @@
-def test_first_function_called(module, run):
-    assert run().out == "name\n"
+import pytest
 
 
-def test_command_called(module, run):
-    assert run("command").out == "command\n"
+@pytest.mark.parametrize(
+    ("argv", "out"),
+    [((), "name\n"), (("command",), "command\n")],
+    ids=["main_function", "command"],
+)
+def test_function_called(module, run, argv, out):
+    assert run(*argv).out == out
 
 
-def test_wrong_command_not_called(module, run):
-    assert run("wrong_command").code.startswith("wrong_command: unknown command")
+@pytest.mark.parametrize(
+    ("argv", "error"),
+    [
+        (("wrong_command",), "wrong_command: unknown command"),
+        (("-ab",), "-a: invalid short option"),
+    ],
+    ids=["unknown_command", "unknown_short_option"],
+)
+def test_invalid_argv(module, run, argv, error):
+    assert run(*argv).code.startswith(error)
 
 
 def test_module_without_functions(fake_module, run):
@@ -18,10 +30,6 @@ def test_module_without_functions(fake_module, run):
 def test_module_not_found(run):
     result = run(prog="magicli_nonexistent_module")
     assert result.code == "magicli_nonexistent_module: command not found"
-
-
-def test_short_option_with_wrong_type(module, run):
-    assert run("-ab").code.startswith("-a: invalid short option")
 
 
 def test_imported_function_is_not_a_command_without_all(fake_module, run):

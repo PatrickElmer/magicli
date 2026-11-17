@@ -93,10 +93,16 @@ def test_get_description_unparsable(project, content):
     assert get_description("module") is None
 
 
-def test_get_license_expression():
-    assert get_license_expression("Apache License") == "Apache-2.0"
-    assert get_license_expression(" GNU GENERAL PUBLIC LICENSE ") == "GPL-3.0-or-later"
-    assert get_license_expression("") is None
+@pytest.mark.parametrize(
+    ("content", "expression"),
+    [
+        ("Apache License", "Apache-2.0"),
+        (" GNU GENERAL PUBLIC LICENSE ", "GPL-3.0-or-later"),
+        ("", None),
+    ],
+)
+def test_get_license_expression(content, expression):
+    assert get_license_expression(content) == expression
 
 
 def test_cli_with_license(project):

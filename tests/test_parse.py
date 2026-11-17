@@ -41,28 +41,18 @@ def test_get_type():
     assert get_type(Parameter("c", PK)) is str
 
 
-def test_parse_argv():
-    parameters = inspect.signature(lambda arg, kwarg=1: None).parameters
-    assert parse_argv(["a", "--kwarg=2"], parameters, docstring="") == (
-        ["a"],
-        {"kwarg": 2},
-    )
-    assert parse_argv(["a", "--kwarg", "2"], parameters, docstring="") == (
-        ["a"],
-        {"kwarg": 2},
-    )
-
-
-def test_parse_argv_with_underscore():
-    parameters = inspect.signature(lambda arg, kwarg_1=1: None).parameters
-    assert parse_argv(["a", "--kwarg-1=2"], parameters, docstring="") == (
-        ["a"],
-        {"kwarg_1": 2},
-    )
-    assert parse_argv(["a", "--kwarg-1", "2"], parameters, docstring="") == (
-        ["a"],
-        {"kwarg_1": 2},
-    )
+@pytest.mark.parametrize(
+    ("argv", "kwargs"),
+    [
+        (["a", "--kwarg=2"], {"kwarg": 2}),
+        (["a", "--kwarg", "2"], {"kwarg": 2}),
+        (["a", "--kwarg-1=2"], {"kwarg_1": 2}),
+        (["a", "--kwarg-1", "2"], {"kwarg_1": 2}),
+    ],
+)
+def test_parse_argv(argv, kwargs):
+    parameters = inspect.signature(lambda arg, kwarg=1, kwarg_1=1: None).parameters
+    assert parse_argv(argv, parameters, docstring="") == (["a"], kwargs)
 
 
 @pytest.mark.parametrize(
@@ -122,22 +112,27 @@ def test_parse_short_options(default, result):
     assert kwargs == {"aa": result}
 
 
-def test_parse_short_options_failures():
-    kwargs = {
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"parameters": {}}, "--abc: invalid long option"),
+        ({"docstring": ""}, "-a: invalid short option"),
+        ({"short_options": "aa", "argv": ["aa"]}, "-a: expected boolean"),
+    ],
+    ids=["unknown_parameter", "not_in_docstring", "repeated_non_boolean"],
+)
+def test_parse_short_options_failures(overrides, message):
+    options = {
         "short_options": "a",
         "docstring": "-a, --abc",
-        "iter_argv": iter(["b"]),
+        "argv": ["b"],
         "parameters": {"abc": Parameter("abc", _ParameterKind.KEYWORD_ONLY)},
         "kwargs": {},
-    }
-    for args, err in [
-        ({"parameters": {}}, ("--abc: invalid long option",)),
-        ({"docstring": ""}, ("-a: invalid short option",)),
-        ({"short_options": "aa", "iter_argv": iter(["aa"])}, ("-a: expected boolean",)),
-    ]:
-        with pytest.raises(ParseArgvError) as error:
-            parse_short_options(**(kwargs | args))
-        assert error.value.args == err
+    } | overrides
+    options["iter_argv"] = iter(options.pop("argv"))
+    with pytest.raises(ParseArgvError) as error:
+        parse_short_options(**options)
+    assert error.value.args == (message,)
 
 
 @pytest.mark.parametrize(
