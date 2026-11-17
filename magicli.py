@@ -4,9 +4,11 @@ by introspecting its functions and automatically parsing command-
 line arguments based on function signatures.
 """
 
+import argparse
 import ast
 import importlib
 import inspect
+import re
 import subprocess
 import sys
 from functools import partial
@@ -79,117 +81,75 @@ def call(function, argv, module=None, name=None):
     check_for_help_and_version(argv, parameters, docstring, module, function)
 
     try:
-        args, kwargs = parse_argv(argv, parameters, docstring)
+        kwargs = vars(build_parser(parameters, docstring).parse_intermixed_args(argv))
     except ParseArgvError as exc:
         raise SystemExit(
             help_message(help_from_function, function, name, module, error=exc.args[0])
         )
 
+    args = []
+    for parameter in parameters.values():
+        if parameter.kind is parameter.POSITIONAL_ONLY:
+            args.append(kwargs.pop(parameter.name, parameter.default))
+        elif parameter.kind is parameter.VAR_POSITIONAL:
+            args.extend(kwargs.pop(parameter.name, []))
+
     function(*args, **kwargs)
 
 
-def parse_argv(argv, parameters, docstring):
-    """Convert argv into args and kwargs."""
-    parameter_list = list(parameters.values())
-    args, kwargs = [], {}
+class _Parser(argparse.ArgumentParser):
+    """Argument parser that raises `ParseArgvError` instead of exiting."""
 
-    for key in (iter_argv := iter(argv)):
-        if key.startswith("--"):
-            left, right = parse_kwarg(key[2:], iter_argv, parameters)
-            kwargs[left] = right
-        elif key.startswith("-"):
-            parse_short_options(key[1:], docstring, iter_argv, parameters, kwargs)
-        elif (index := len(args)) >= len(parameter_list):
-            raise ParseArgvError(f"{key}: unknown command")
-        else:
-            args.append(cast_value(key, get_type(parameter_list[index])))
-
-    check_all_args_present(len(args), parameter_list)
-
-    return args, kwargs
+    def error(self, message):
+        raise ParseArgvError(message)
 
 
-def check_all_args_present(len_args, parameter_list):
+def build_parser(parameters, docstring):
     """
-    If the first keyword argument does not have a default value,
-    a positional argument is missing and an error is raised.
+    Builds an argument parser from function parameters. Short options are
+    read from the docstring, e.g. `-t, --times`.
     """
-    if len_args < len(parameter_list):
-        parameter = parameter_list[len_args]
-        if parameter.default is parameter.empty:
-            raise ParseArgvError(f"{parameter.name}: positional argument missing")
-
-
-def parse_kwarg(key, argv, parameters):
-    """
-    Parses a single keyword argument from command-line arguments.
-    Handles '=' syntax for inline values. Casts `NoneType` values to `True`
-    and boolean values to `not default`.
-    """
-    key, value = key.split("=", 1) if "=" in key else (key, None)
-    key = key.replace("-", "_")
-
-    if (parameter := parameters.get(key)) is None:
-        raise ParseArgvError(f"--{key}: unknown long option")
-
-    cast_to = get_type(parameter)
-
-    if value is None:
-        if cast_to is bool:
-            return key, not parameter.default
-        if cast_to is type(None):
-            return key, True
-        value = next_arg(argv)
-
-    return key, cast_value(value, cast_to)
-
-
-def next_arg(argv):
-    """Return the next command-line argument or raise a parser error."""
-    try:
-        return next(argv)
-    except StopIteration:
-        raise ParseArgvError("error: missing option value")
-
-
-def cast_value(value, cast_to):
-    """Cast a command-line argument value or raise a parser error."""
-    try:
-        return value if cast_to is str else cast_to(value)
-    except (ValueError, TypeError) as exc:
-        raise ParseArgvError(exc.args[0]) if exc.args else ParseArgvError() from exc
-
-
-def parse_short_options(short_options, docstring, iter_argv, parameters, kwargs):
-    """Converts short options into long options and casts into correct types."""
-    for i, short in enumerate(short_options):
-        long = short_to_long_option(short, docstring)
-
-        if (parameter := parameters.get(long)) is None:
-            raise ParseArgvError(f"--{long}: invalid long option")
-
+    parser = _Parser(add_help=False, allow_abbrev=False)
+    shorts = {
+        long.replace("-", "_"): short
+        for short, long in re.findall(r"(?<![\w-])-(\w), --([\w-]+)", docstring)
+    }
+    for parameter in parameters.values():
+        name, kind = parameter.name, parameter.kind
         cast_to = get_type(parameter)
+        positional = {"type": cast_to, "default": argparse.SUPPRESS}
 
+        if kind is parameter.VAR_KEYWORD:
+            continue
+        if kind is parameter.VAR_POSITIONAL:
+            parser.add_argument(name, nargs="*", **positional)
+            continue
+        if kind is parameter.POSITIONAL_ONLY:
+            parser.add_argument(
+                name,
+                nargs=None if parameter.default is parameter.empty else "?",
+                **positional,
+            )
+            continue
+
+        flags = list(dict.fromkeys([f"--{name.replace('_', '-')}", f"--{name}"]))
+        if name in shorts:
+            flags.insert(0, f"-{shorts[name]}")
+        opts = {"dest": name, "default": argparse.SUPPRESS}
         if cast_to is bool:
-            kwargs[long] = not parameter.default
+            parser.add_argument(
+                *flags, action="store_const", const=not parameter.default, **opts
+            )
         elif cast_to is type(None):
-            kwargs[long] = True
-        elif i == len(short_options) - 1:
-            kwargs[long] = cast_value(next_arg(iter_argv), cast_to)
+            parser.add_argument(*flags, action="store_const", const=True, **opts)
         else:
-            raise ParseArgvError(f"-{short}: expected boolean")
-
-
-def short_to_long_option(short, docstring):
-    """Converts a one character short option to a long option according to the help message."""
-    template = f"-{short}, --"
-    if (start := docstring.find(template)) != -1:
-        start += len(template)
-        if len(docstring) - start > 1:
-            chars = [" ", "\n", "]"]
-            indices = (i for char in chars if (i := docstring.find(char, start)) != -1)
-            return docstring[start : min(indices, default=None)].replace("-", "_")
-    raise ParseArgvError(f"-{short}: invalid short option")
+            parser.add_argument(*flags, type=cast_to, **opts)
+            parser.add_argument(
+                name,
+                nargs=None if parameter.default is parameter.empty else "?",
+                **positional,
+            )
+    return parser
 
 
 def get_type(parameter):
