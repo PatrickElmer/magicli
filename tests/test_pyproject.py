@@ -1,5 +1,5 @@
 import sys
-from unittest import mock
+from pathlib import Path
 
 import pytest
 
@@ -13,24 +13,24 @@ from magicli import (
 )
 
 
-@mock.patch("builtins.input", lambda _: "two")
-def test_correct_name_input(project):
-    path = project("module.py", "two.py")
+def test_correct_name_input(project, monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "two")
+    project("module.py", "two.py")
     cli()
 
-    assert 'name = "two"' in (path / "pyproject.toml").read_text(encoding="utf-8")
+    assert 'name = "two"' in Path("pyproject.toml").read_text(encoding="utf-8")
 
 
-@mock.patch("builtins.input", lambda *_: "y")
-def test_overwrite_pyproject_toml(project):
-    path = project("pyproject.toml", "module.py")
+def test_overwrite_pyproject_toml(project, monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "y")
+    project("pyproject.toml", "module.py")
     cli()
 
-    assert 'name = "module"' in (path / "pyproject.toml").read_text(encoding="utf-8")
+    assert 'name = "module"' in Path("pyproject.toml").read_text(encoding="utf-8")
 
 
-@mock.patch("builtins.input", lambda *_: "")
-def test_empty_cli_name_failure(project):
+def test_empty_cli_name_failure(project, monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "")
     project("module.py", "two.py")
     with pytest.raises(SystemExit) as error:
         get_project_name()
@@ -43,8 +43,9 @@ def test_with_git_repo_without_tag(capsys, project):
     assert "Specify the version with `git tag`\n" in capsys.readouterr().err
 
 
-def test_with_git_repo_with_tag(capsys, project):
-    project(tag="v0.1.0")
+def test_with_git_repo_with_tag(capsys, project, git_output):
+    project(git=True)
+    git_output["git", "tag"] = "v0.1.0"
     cli(name="_")
     assert "Specify the version with `git tag`" not in capsys.readouterr().err
 
@@ -93,22 +94,28 @@ def test_get_description_unparsable(project, content):
     assert get_description("module") is None
 
 
-def test_get_license_expression():
-    assert get_license_expression("Apache License") == "Apache-2.0"
-    assert get_license_expression(" GNU GENERAL PUBLIC LICENSE ") == "GPL-3.0-or-later"
-    assert get_license_expression("") is None
+@pytest.mark.parametrize(
+    ("content", "expression"),
+    [
+        ("Apache License", "Apache-2.0"),
+        (" GNU GENERAL PUBLIC LICENSE ", "GPL-3.0-or-later"),
+        ("", None),
+    ],
+)
+def test_get_license_expression(content, expression):
+    assert get_license_expression(content) == expression
 
 
 def test_cli_with_license(project):
-    path = project(LICENSE="MIT License")
+    project(LICENSE="MIT License")
     cli(name="name", author="Patrick Elmer", email="patrick@elmer.ws")
-    pyproject = (path / "pyproject.toml").read_text(encoding="utf-8")
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
     assert 'license = "MIT"' in pyproject
     assert 'license-files = ["LICENSE"]' in pyproject
 
 
 def test_cli_with_kwargs(capsys, project):
-    path = project("README.md", "LICENSE")
+    project("README.md", "LICENSE")
     cli(
         name="name",
         author="Patrick Elmer",
@@ -118,7 +125,7 @@ def test_cli_with_kwargs(capsys, project):
     )
     assert "Unknown license: LICENSE\n" in capsys.readouterr().err
     assert (
-        (path / "pyproject.toml").read_text(encoding="utf-8")
+        Path("pyproject.toml").read_text(encoding="utf-8")
         == """\
 [project]
 name = "name"
@@ -142,9 +149,7 @@ build-backend = "setuptools.build_meta"
     )
 
 
-@mock.patch("builtins.input", return_value="n")
-def test_module_is_magicli(_, project, run):
+def test_module_is_magicli(project, run, monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "n")
     project("pyproject.toml", "module.py")
-    with pytest.raises(SystemExit) as error:
-        run(prog="magicli")
-    assert error.value.code == 1
+    assert run(prog="magicli").code == 1

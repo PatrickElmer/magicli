@@ -1,21 +1,16 @@
-import subprocess
 import sys
+from types import SimpleNamespace
 
 import pytest
+
+from magicli import magicli
 
 MODULE_NAME = "magicli_testmod"
 
 
-def git_run(*args):
-    subprocess.run(
-        ["git", "-c", "user.name=test", "-c", "user.email=test@example.com", *args],
-        check=True,
-    )
-
-
 def magicli_testmod():
     "-V, --version"
-    print("name")
+    print("main")
 
 
 def command():
@@ -24,25 +19,32 @@ def command():
 
 
 @pytest.fixture
-def project(tmp_path, monkeypatch):
+def git_output(monkeypatch):
+    """
+    Replaces `magicli.get_output` so no git process runs. Map argument tuples to the
+    output to return, e.g. `git_output["git", "tag"] = "v0.1.0"`. Unmapped commands
+    return None, like a failing command.
+    """
+    outputs = {}
+    monkeypatch.setattr(
+        "magicli.get_output", lambda command: outputs.get(tuple(command))
+    )
+    return outputs
+
+
+@pytest.fixture
+def project(tmp_path, monkeypatch, git_output):
     """
     Factory that turns `tmp_path` into the working directory and populates it.
     Positional arguments are touched as empty files, keyword arguments are written
-    with their value as content. `git=True` initializes a git repository and `tag`
-    creates an initial commit with that tag. Git is isolated from the user's
-    config and from repositories above `tmp_path`.
+    with their value as content and `git=True` creates a `.git` directory. Git calls
+    are answered by the `git_output` fixture.
     """
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("GIT_CONFIG_GLOBAL", "/dev/null")
-    monkeypatch.setenv("GIT_CONFIG_SYSTEM", "/dev/null")
-    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
 
-    def make(*files, git=False, tag=None, **contents):
-        if git or tag:
-            git_run("init", "--quiet")
-        if tag:
-            git_run("commit", "--allow-empty", "--quiet", "--message=init")
-            git_run("tag", tag)
+    def make(*files, git=False, **contents):
+        if git:
+            (tmp_path / ".git").mkdir()
         for filename in files:
             (tmp_path / filename).touch()
         for filename, content in contents.items():
@@ -57,13 +59,15 @@ def fake_module(monkeypatch):
     """
     Factory that registers a fake module in `sys.modules` so `magicli` imports it.
     Functions are added under their `__name__`, keyword arguments under the given
-    name. All of them are listed in `__all__` unless `all_=False`.
+    name. All of them are listed in `__all__` unless `all_=False`. `doc` and
+    `version` set `__doc__` and `__version__`; `__version__` is only set if given.
     """
 
-    def make(*functions, version=None, all_=True, **named):
+    def make(*functions, doc=None, version=None, all_=True, **named):
         module = type(sys)(MODULE_NAME)
-        module.__doc__ = "docstring"
-        module.__version__ = version
+        module.__doc__ = doc
+        if version is not None:
+            module.__version__ = version
         named = {function.__name__: function for function in functions} | named
         for name, function in named.items():
             setattr(module, name, function)
@@ -76,18 +80,31 @@ def fake_module(monkeypatch):
 
 
 @pytest.fixture
-def module(fake_module):
-    """Fake module with a main function named like the module and a `command`."""
-    return fake_module(magicli_testmod, command)
+def module_functions():
+    """A main function named like the module and a `command`, for `fake_module`."""
+    return magicli_testmod, command
 
 
 @pytest.fixture
-def run(monkeypatch):
-    """Runs `magicli` with the given command-line arguments."""
-    from magicli import magicli
+def module(fake_module, module_functions):
+    """Fake module with the default `module_functions`."""
+    return fake_module(*module_functions)
+
+
+@pytest.fixture
+def run(monkeypatch, capsys):
+    """
+    Runs `magicli` with the given command-line arguments. Returns the exit `code`
+    (None if `magicli` returned or exited without a code) and the captured `out`.
+    """
 
     def run_magicli(*argv, prog=MODULE_NAME):
         monkeypatch.setattr(sys, "argv", [prog, *argv])
-        magicli()
+        try:
+            magicli()
+            code = None
+        except SystemExit as exc:
+            code = exc.code
+        return SimpleNamespace(code=code, out=capsys.readouterr().out)
 
     return run_magicli
