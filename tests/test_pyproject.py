@@ -43,8 +43,9 @@ def test_with_git_repo_without_tag(capsys, project):
     assert "Specify the version with `git tag`\n" in capsys.readouterr().err
 
 
-def test_with_git_repo_with_tag(capsys, project):
-    project(tag="v0.1.0")
+def test_with_git_repo_with_tag(capsys, project, git_output):
+    project(git=True)
+    git_output["git", "tag"] = "v0.1.0"
     cli(name="_")
     assert "Specify the version with `git tag`" not in capsys.readouterr().err
 

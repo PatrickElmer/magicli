@@ -1,16 +1,8 @@
-import subprocess
 import sys
 
 import pytest
 
 MODULE_NAME = "magicli_testmod"
-
-
-def git_run(*args):
-    subprocess.run(
-        ["git", "-c", "user.name=test", "-c", "user.email=test@example.com", *args],
-        check=True,
-    )
 
 
 def magicli_testmod():
@@ -24,25 +16,32 @@ def command():
 
 
 @pytest.fixture
-def project(tmp_path, monkeypatch):
+def git_output(monkeypatch):
+    """
+    Replaces `magicli.get_output` so no git process runs. Map argument tuples to the
+    output to return, e.g. `git_output["git", "tag"] = "v0.1.0"`. Unmapped commands
+    return None, like a failing command.
+    """
+    outputs = {}
+    monkeypatch.setattr(
+        "magicli.get_output", lambda command: outputs.get(tuple(command))
+    )
+    return outputs
+
+
+@pytest.fixture
+def project(tmp_path, monkeypatch, git_output):
     """
     Factory that turns `tmp_path` into the working directory and populates it.
     Positional arguments are touched as empty files, keyword arguments are written
-    with their value as content. `git=True` initializes a git repository and `tag`
-    creates an initial commit with that tag. Git is isolated from the user's
-    config and from repositories above `tmp_path`.
+    with their value as content and `git=True` creates a `.git` directory. Git calls
+    are answered by the `git_output` fixture.
     """
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("GIT_CONFIG_GLOBAL", "/dev/null")
-    monkeypatch.setenv("GIT_CONFIG_SYSTEM", "/dev/null")
-    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
 
-    def make(*files, git=False, tag=None, **contents):
-        if git or tag:
-            git_run("init", "--quiet")
-        if tag:
-            git_run("commit", "--allow-empty", "--quiet", "--message=init")
-            git_run("tag", tag)
+    def make(*files, git=False, **contents):
+        if git:
+            (tmp_path / ".git").mkdir()
         for filename in files:
             (tmp_path / filename).touch()
         for filename, content in contents.items():
