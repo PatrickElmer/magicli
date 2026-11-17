@@ -41,7 +41,7 @@ def test_help_message_for_unknown_command(fake_module, run):
     assert (
         run("unknown_command").code
         == f"""\
-unknown_command: unknown command
+unrecognized arguments: unknown_command
 
 usage:
   {module.__name__}
@@ -79,4 +79,4 @@ def test_version(fake_module, module_functions, run, argv):
 
 def test_version_flag_not_in_docstring(fake_module, module_functions, run):
     fake_module(*module_functions, version="1.2.3")
-    assert run("-v").code.startswith("-v: invalid short option")
+    assert run("-v").code.startswith("unrecognized arguments: -v")

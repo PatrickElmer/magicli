@@ -13,8 +13,8 @@ def test_function_called(module, run, argv, out):
 @pytest.mark.parametrize(
     ("argv", "error"),
     [
-        (("wrong_command",), "wrong_command: unknown command"),
-        (("-ab",), "-a: invalid short option"),
+        (("wrong_command",), "unrecognized arguments: wrong_command"),
+        (("-ab",), "unrecognized arguments: -ab"),
     ],
     ids=["unknown_command", "unknown_short_option"],
 )
