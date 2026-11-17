@@ -57,10 +57,8 @@ def test_help_message_for_unknown_command(fake_module, run):
     def command_2(): ...
 
     module = fake_module(magicli_testmod, command, command_2)
-    with pytest.raises(SystemExit) as error:
-        run("unknown_command")
     assert (
-        error.value.code
+        run("unknown_command").code
         == f"""\
 unknown_command: unknown command
 
@@ -75,12 +73,10 @@ commands:
     )
 
 
-def test_help_kwarg_displays_help_message(module, run, capsys, monkeypatch):
+def test_help_kwarg_displays_help_message(module, run, monkeypatch):
     monkeypatch.setattr(module.magicli_testmod, "__doc__", None)
-    with pytest.raises(SystemExit):
-        run("--help")
     assert (
-        capsys.readouterr().out
+        run("--help").out
         == f"""\
 usage:
   {module.__name__}
@@ -93,24 +89,20 @@ commands:
 
 
 @pytest.mark.parametrize("flag", ["--version", "-V"])
-def test_version(module, run, capsys, flag):
+def test_version(module, run, flag):
     module.__version__ = "1.2.3"
-    with pytest.raises(SystemExit) as error:
-        run(flag)
-    assert error.value.code is None
-    assert capsys.readouterr().out == "1.2.3\n"
+    result = run(flag)
+    assert result.code is None
+    assert result.out == "1.2.3\n"
 
 
 def test_version_flag_not_in_docstring(module, run):
     module.__version__ = "1.2.3"
-    with pytest.raises(SystemExit) as error:
-        run("-v")
-    assert error.value.code.startswith("-v: invalid short option")
+    assert run("-v").code.startswith("-v: invalid short option")
 
 
-def test_version_with_command(module, run, capsys):
+def test_version_with_command(module, run):
     module.__version__ = "1.2.3"
-    with pytest.raises(SystemExit) as error:
-        run("command", "-v")
-    assert error.value.code is None
-    assert capsys.readouterr().out == "1.2.3\n"
+    result = run("command", "-v")
+    assert result.code is None
+    assert result.out == "1.2.3\n"

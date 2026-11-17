@@ -1,5 +1,4 @@
 import sys
-from unittest import mock
 
 import pytest
 
@@ -13,24 +12,24 @@ from magicli import (
 )
 
 
-@mock.patch("builtins.input", lambda _: "two")
-def test_correct_name_input(project):
+def test_correct_name_input(project, monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "two")
     path = project("module.py", "two.py")
     cli()
 
     assert 'name = "two"' in (path / "pyproject.toml").read_text(encoding="utf-8")
 
 
-@mock.patch("builtins.input", lambda *_: "y")
-def test_overwrite_pyproject_toml(project):
+def test_overwrite_pyproject_toml(project, monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "y")
     path = project("pyproject.toml", "module.py")
     cli()
 
     assert 'name = "module"' in (path / "pyproject.toml").read_text(encoding="utf-8")
 
 
-@mock.patch("builtins.input", lambda *_: "")
-def test_empty_cli_name_failure(project):
+def test_empty_cli_name_failure(project, monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "")
     project("module.py", "two.py")
     with pytest.raises(SystemExit) as error:
         get_project_name()
@@ -143,9 +142,7 @@ build-backend = "setuptools.build_meta"
     )
 
 
-@mock.patch("builtins.input", return_value="n")
-def test_module_is_magicli(_, project, run):
+def test_module_is_magicli(project, run, monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "n")
     project("pyproject.toml", "module.py")
-    with pytest.raises(SystemExit) as error:
-        run(prog="magicli")
-    assert error.value.code == 1
+    assert run(prog="magicli").code == 1

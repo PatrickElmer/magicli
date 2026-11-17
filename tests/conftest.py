@@ -1,6 +1,9 @@
 import sys
+from types import SimpleNamespace
 
 import pytest
+
+from magicli import magicli
 
 MODULE_NAME = "magicli_testmod"
 
@@ -56,13 +59,15 @@ def fake_module(monkeypatch):
     """
     Factory that registers a fake module in `sys.modules` so `magicli` imports it.
     Functions are added under their `__name__`, keyword arguments under the given
-    name. All of them are listed in `__all__` unless `all_=False`.
+    name. All of them are listed in `__all__` unless `all_=False`. `doc` and
+    `version` set `__doc__` and `__version__`; `__version__` is only set if given.
     """
 
-    def make(*functions, version=None, all_=True, **named):
+    def make(*functions, doc=None, version=None, all_=True, **named):
         module = type(sys)(MODULE_NAME)
-        module.__doc__ = "docstring"
-        module.__version__ = version
+        module.__doc__ = doc
+        if version is not None:
+            module.__version__ = version
         named = {function.__name__: function for function in functions} | named
         for name, function in named.items():
             setattr(module, name, function)
@@ -81,12 +86,19 @@ def module(fake_module):
 
 
 @pytest.fixture
-def run(monkeypatch):
-    """Runs `magicli` with the given command-line arguments."""
-    from magicli import magicli
+def run(monkeypatch, capsys):
+    """
+    Runs `magicli` with the given command-line arguments. Returns the exit `code`
+    (None if `magicli` returned or exited without a code) and the captured `out`.
+    """
 
     def run_magicli(*argv, prog=MODULE_NAME):
         monkeypatch.setattr(sys, "argv", [prog, *argv])
-        magicli()
+        try:
+            magicli()
+            code = None
+        except SystemExit as exc:
+            code = exc.code
+        return SimpleNamespace(code=code, out=capsys.readouterr().out)
 
     return run_magicli
